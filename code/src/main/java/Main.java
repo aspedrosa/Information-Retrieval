@@ -1,39 +1,32 @@
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+import document_parser.CorpusReader;
+import document_parser.TrecAsciiMedline2004Parser;
+import indexer.PostingIndexer;
+import tokenizer.SimpleTokenizer;
+
 import java.io.IOException;
-import java.util.zip.GZIPInputStream;
 
 public class Main {
 
     public static void main(String[] args) {
-        GZIPInputStream a = null;
+        // TODO validate program arguments
+
+        PostingIndexer indexer = new PostingIndexer();
+
+        SimpleTokenizer tokenizer = new SimpleTokenizer(indexer);
+
+        CorpusReader cr = new CorpusReader(tokenizer);
+
+        TrecAsciiMedline2004Parser.addFieldToSave("TI");
+        cr.addParser("gz", TrecAsciiMedline2004Parser.class);
+
         try {
-            FileInputStream inputStream = new FileInputStream(args[0]);
-            a = new GZIPInputStream(inputStream);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
+            cr.readCorpus(args[0]);
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-
-        byte[] data = new byte[1];
-        int i = 1, bytesRead = 0;
-        try {
-            while ((bytesRead = a.read(data, 0, 1)) != -1) {
-                i = data[0] + i*2;
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        try {
-            a.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
+        //indexer.persist();
     }
 
 }

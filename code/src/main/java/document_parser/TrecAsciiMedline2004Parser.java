@@ -4,27 +4,39 @@ import tokenizer.BaseTokenizer;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.zip.GZIPInputStream;
 
 public class TrecAsciiMedline2004Parser extends DocumentParser {
 
-    private Set<String> fieldsToSave;
+    private static Set<String> fieldsToSave = new TreeSet<>();
 
-    public TrecAsciiMedline2004Parser(GZIPInputStream input, BaseTokenizer tokenizer, Set<String> fieldsToSave) {
+    public TrecAsciiMedline2004Parser(InputStream input, BaseTokenizer tokenizer) {
         super(input, tokenizer);
-        this.fieldsToSave = fieldsToSave;
     }
 
-    private GZIPInputStream getInputStream() {
-        return (GZIPInputStream) input;
+    public static void addFieldToSave(String fieldToSave) {
+        fieldsToSave.add(fieldToSave);
+    }
+
+    public static void setFieldsToSave(Set<String> newFieldsToSave) {
+        fieldsToSave = newFieldsToSave;
     }
 
     public void parse() throws IOException {
-        BufferedReader buffer = new BufferedReader(new InputStreamReader(getInputStream()));
+        BufferedReader buffer =
+            new BufferedReader(
+                new InputStreamReader(
+                    new GZIPInputStream(
+                        input
+                    )
+                )
+            );
 
         List<String> toTokenize = new LinkedList<>();
         String docId = "";
@@ -41,6 +53,7 @@ public class TrecAsciiMedline2004Parser extends DocumentParser {
                 }
 
                 tokenizer.tokenizeDocument(docId, toTokenize);
+
                 toTokenize.clear();
             }
             else {
@@ -48,6 +61,8 @@ public class TrecAsciiMedline2004Parser extends DocumentParser {
                 if (line.charAt(4) == '-') {
                     if (sb.length() > 0) {
                         toTokenize.add(sb.toString());
+                        //we could also tokenize now instead of
+                        // doing it all at the end
 
                         sb = new StringBuilder();
                     }
