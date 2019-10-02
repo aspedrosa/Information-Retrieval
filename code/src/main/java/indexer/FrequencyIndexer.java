@@ -1,17 +1,13 @@
 package indexer;
 
-import indexer.persisters.BasePersister;
+import indexer.structures.DocumentWithFrequency;
+import indexer.structures.SimpleTerm;
 
-import java.util.Map;
 import java.util.TreeMap;
-import java.util.Collections;
-import java.util.List;
 
-public class PostingIndexer implements BaseIndexer {
+public class FrequencyIndexer extends BaseIndexer<SimpleTerm, DocumentWithFrequency> {
 
-    private Map<Term<?>, List<Document<Integer>>> invertedIndex;
-
-    public PostingIndexer() {
+    public FrequencyIndexer() {
         invertedIndex = new TreeMap<>();
     }
 
@@ -26,16 +22,11 @@ public class PostingIndexer implements BaseIndexer {
      *   2. Search for the document
      *    1. If exists increment frequency by 1
      *    2. If not insert a new the documentId and count (1)
+     *
+     * Check difference between LinkedList or ArrayList
      */
     @Override
     public void addTerm(String term, String documentId) {
         // TODO
-    }
-
-    public void persist(BasePersister persister, String fileName) {
-        for (Map.Entry<Term<?>, List<Document<Integer>>> a : invertedIndex.entrySet()) {
-            Term b = a.getKey();
-            List<Document<Integer>> d = a.getValue();
-        }
     }
 }

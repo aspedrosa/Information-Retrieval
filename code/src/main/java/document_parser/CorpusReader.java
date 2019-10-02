@@ -1,6 +1,5 @@
 package document_parser;
 
-import indexer.BaseIndexer;
 import tokenizer.BaseTokenizer;
 
 import java.io.FileInputStream;
@@ -15,7 +14,6 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.zip.GZIPInputStream;
 
 public class CorpusReader {
 
