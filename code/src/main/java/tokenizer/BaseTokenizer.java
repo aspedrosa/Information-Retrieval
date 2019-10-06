@@ -3,35 +3,40 @@ package tokenizer;
 import java.util.LinkedList;
 import java.util.List;
 
-import indexer.BaseIndexer;
 import tokenizer.linguistic_rules.LinguisticRule;
 
+/**
+ * All tokenizers extends this class
+ * Base classes should implement the tokenizeString method
+ *  where it applies all text processing rules/steps (e.g.
+ *  tokenization, stemming, ...)
+ */
 public abstract class BaseTokenizer {
 
     protected List<LinguisticRule> rules;
 
-    protected BaseIndexer indexer;
-
-    public BaseTokenizer(List<LinguisticRule> rules, BaseIndexer indexer) {
+    public BaseTokenizer(List<LinguisticRule> rules) {
         this.rules = rules;
-        this.indexer = indexer;
     }
 
-    public BaseTokenizer(BaseIndexer indexer) {
+    public BaseTokenizer() {
         this.rules = new LinkedList<>();
-        this.indexer = indexer;
     }
 
     public void addRule(LinguisticRule newRule) {
         rules.add(newRule);
     }
 
-    public void tokenizeDocument(String docId, List<String> toTokenize) {
+    public final List<String> tokenizeDocument(List<String> toTokenize) {
+        List<String> terms = new LinkedList<>();
+
         for (String strToTokenize : toTokenize) {
-            tokenizeString(docId, strToTokenize);
+            terms.addAll(tokenizeString(strToTokenize));
         }
+
+        return terms;
     }
 
-    public abstract void tokenizeString(String docId, String toTokenize);
+    public abstract List<String> tokenizeString(String toTokenize);
 
 }

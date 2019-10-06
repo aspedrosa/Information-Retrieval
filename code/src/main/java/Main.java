@@ -1,15 +1,16 @@
 
-import document_parser.CorpusReader;
-import document_parser.TrecAsciiMedline2004Parser;
+import parser.CorpusReader;
+import parser.document.DocumentParser;
+import parser.document.TrecAsciiMedline2004DocParser;
+import parser.file.TrecAsciiMedline2004FileParser;
 import indexer.FrequencyIndexer;
 import indexer.structures.DocumentWithFrequency;
 import indexer.structures.SimpleTerm;
 import tokenizer.SimpleTokenizer;
 
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Main {
 
@@ -19,13 +20,23 @@ public class Main {
         // arg 2 -> index output file
 
         FrequencyIndexer indexer = new FrequencyIndexer();
+        DocumentParser.setIndexer(indexer);
 
-        SimpleTokenizer tokenizer = new SimpleTokenizer(indexer);
+        System.out.println("Created the indexer");
+
+        SimpleTokenizer tokenizer = new SimpleTokenizer();
+        DocumentParser.setTokenizer(tokenizer);
+
+        System.out.println("Created the tokenizer");
 
         CorpusReader cr = new CorpusReader(tokenizer);
 
-        TrecAsciiMedline2004Parser.addFieldToSave("TI");
-        cr.addParser("gz", TrecAsciiMedline2004Parser.class);
+        TrecAsciiMedline2004DocParser.addFieldToSave("TI");
+        TrecAsciiMedline2004DocParser.addFieldToSave("PMID");
+        cr.addParser("gz", TrecAsciiMedline2004FileParser.class);
+
+        System.out.println("Started parsing the corpus");
+        long begin = System.currentTimeMillis();
 
         try {
             cr.readCorpus(args[0]);
@@ -34,9 +45,11 @@ public class Main {
             System.exit(2);
         }
 
-        OutputStream output = null;
+        System.out.println("Finished parsing the corpus in " + (System.currentTimeMillis() - begin));
+
+        BufferedOutputStream output = null;
         try {
-            output = new FileOutputStream(args[1]);
+            output = new BufferedOutputStream(new FileOutputStream(args[1]));
         } catch (FileNotFoundException e) {
             System.err.println("Output file not found");
             System.exit(3);
@@ -44,7 +57,16 @@ public class Main {
 
         try {
             indexer.persist(output, (out, index) -> {
-                for (SimpleTerm term : index.keySet()) {
+                System.out.println("Sorting terms");
+
+                List<SimpleTerm> sortedTerms = new ArrayList<>(index.keySet());
+                sortedTerms.sort(SimpleTerm::compareTo);
+
+                System.out.println("Finished sorting terms");
+
+                System.out.println("Writing index to disk");
+
+                for (SimpleTerm term : sortedTerms) {
                     out.write(term.getTerm().getBytes());
                     out.write(',');
 

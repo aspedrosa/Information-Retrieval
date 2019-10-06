@@ -1,16 +1,16 @@
 package indexer.structures;
 
-public class DocumentWithFrequency extends BlockWithInfo<Integer> implements BaseDocument {
+public class DocumentWithFrequency extends BlockWithInfo<Integer, Integer> implements BaseDocument {
 
-    public DocumentWithFrequency(String docId) {
+    public DocumentWithFrequency(int docId) {
         super(docId, 0);
     }
 
-    public DocumentWithFrequency(String docId, int frequency) {
+    public DocumentWithFrequency(int docId, int frequency) {
         super(docId, frequency);
     }
 
-    public String getDocId() {
+    public int getDocId() {
         return key;
     }
 

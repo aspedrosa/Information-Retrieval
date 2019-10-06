@@ -1,7 +1,7 @@
 
 package indexer.structures;
 
-public class SimpleTerm extends Block implements BaseTerm {
+public class SimpleTerm extends Block<String> implements BaseTerm {
 
     public SimpleTerm(String term) {
         super(term);
@@ -9,6 +9,10 @@ public class SimpleTerm extends Block implements BaseTerm {
 
     public String getTerm() {
         return key;
+    }
+
+    public void setTerm(String term) {
+        this.key = term;
     }
 
 }

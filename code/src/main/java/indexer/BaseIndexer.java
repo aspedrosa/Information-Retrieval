@@ -7,6 +7,7 @@ import indexer.structures.Block;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -14,9 +15,19 @@ public abstract class BaseIndexer<T extends Block & BaseTerm, D extends Block & 
 
     protected Map<T, List<D>> invertedIndex;
 
-    public void persist(OutputStream output, BasePersister<T, D> persister) throws IOException {
+    protected Map<Integer, String> documentIdentification;
+
+    public BaseIndexer() {
+        documentIdentification = new HashMap<>();
+    }
+
+    public final void persist(OutputStream output, BasePersister<T, D> persister) throws IOException {
         persister.persist(output, invertedIndex);
     }
 
-    public abstract void addTerm(String term, String documentId);
+    public final void registerDocument(int documentId, String identifier) {
+        documentIdentification.put(documentId, identifier);
+    }
+
+    public abstract void indexTerms(int documentId, List<String> terms);
 }

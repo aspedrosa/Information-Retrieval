@@ -3,12 +3,31 @@ package indexer;
 import indexer.structures.DocumentWithFrequency;
 import indexer.structures.SimpleTerm;
 
-import java.util.TreeMap;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 
 public class FrequencyIndexer extends BaseIndexer<SimpleTerm, DocumentWithFrequency> {
 
+    // use to improve some performance
+    private SimpleTerm dummyTerm;
+
     public FrequencyIndexer() {
-        invertedIndex = new TreeMap<>();
+        invertedIndex = new HashMap<>(); //try treeMap
+        dummyTerm = new SimpleTerm(null);
+    }
+
+    private void insertDocument(String term, DocumentWithFrequency document) {
+        dummyTerm.setTerm(term);
+
+        List<DocumentWithFrequency> postingList = invertedIndex.get(dummyTerm);
+
+        if (postingList == null) {
+            postingList = new LinkedList<>();
+            invertedIndex.put(new SimpleTerm(term), postingList);
+        }
+
+        postingList.add(document);
     }
 
     /**
@@ -26,7 +45,25 @@ public class FrequencyIndexer extends BaseIndexer<SimpleTerm, DocumentWithFreque
      * Check difference between LinkedList or ArrayList
      */
     @Override
-    public void addTerm(String term, String documentId) {
-        // TODO
+    public void indexTerms(int documentId, List<String> terms) {
+        terms.sort(String::compareTo);
+
+        String previousTerm = null;
+        DocumentWithFrequency document = null;
+        for (String term : terms) {
+            if (term.equals(previousTerm)) {
+                document.increseFrequency();
+            }
+            else {
+                if (previousTerm != null) {
+                    insertDocument(previousTerm, document);
+                }
+
+                previousTerm = term;
+                document = new DocumentWithFrequency(documentId, 1);
+            }
+        }
+
+        insertDocument(previousTerm, document);
     }
 }

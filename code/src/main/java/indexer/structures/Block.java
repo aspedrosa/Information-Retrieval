@@ -1,10 +1,10 @@
 package indexer.structures;
 
-public class Block implements Comparable<Block> {
+public class Block<T extends Comparable<T>> implements Comparable<Block<T>> {
 
-    protected String key;
+    protected T key;
 
-    protected Block(String key) {
+    protected Block(T key) {
         this.key = key;
     }
 
@@ -26,7 +26,7 @@ public class Block implements Comparable<Block> {
     }
 
     @Override
-    public int compareTo(Block block) {
+    public int compareTo(Block<T> block) {
         return key.compareTo(block.key);
     }
 }

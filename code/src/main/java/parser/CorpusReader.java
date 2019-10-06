@@ -1,5 +1,6 @@
-package document_parser;
+package parser;
 
+import parser.file.FileParser;
 import tokenizer.BaseTokenizer;
 
 import java.io.FileInputStream;
@@ -15,9 +16,17 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+/**
+ * Class in charge of reading the files from the
+ *  corpus folder recursively and to choose the
+ *  right file parser for each file
+ *
+ * TODO create base class, child ones have different
+ *  strategies to choose the right file parser
+ */
 public class CorpusReader {
 
-    private Map<String, Class<? extends DocumentParser>> parsers;
+    private Map<String, Class<? extends FileParser>> parsers;
 
     private BaseTokenizer tokenizer;
 
@@ -26,12 +35,12 @@ public class CorpusReader {
         this.parsers = new HashMap<>();
     }
 
-    public CorpusReader(BaseTokenizer tokenizer, Map<String, Class<? extends DocumentParser>> parsers) {
+    public CorpusReader(BaseTokenizer tokenizer, Map<String, Class<? extends FileParser>> parsers) {
         this.tokenizer = tokenizer;
         this.parsers = parsers;
     }
 
-    public void addParser(String extension, Class<? extends DocumentParser> parser) {
+    public void addParser(String extension, Class<? extends FileParser> parser) {
         parsers.put(extension, parser);
     }
 
@@ -59,36 +68,43 @@ public class CorpusReader {
             //  found recursively
         }
 
+        // getting file extension
         String filename = path.getFileName().toString();
         String[] filenameParts = filename.split("\\.");
         String extension = filenameParts[filenameParts.length - 1];
 
-        Class<? extends DocumentParser> parserClass = parsers.get(extension);
-
+        // get the class of the file parser
+        Class<? extends FileParser> parserClass = parsers.get(extension);
         if (parserClass == null) {
             System.err.println("No parser found for file " + filename);
             return;
         }
 
-        Constructor<? extends DocumentParser> constructor;
+        // get the constructor of the file parser
+        Constructor<? extends FileParser> constructor;
         try {
-            constructor = parserClass.getConstructor(InputStream.class, BaseTokenizer.class);
+            constructor = parserClass.getConstructor(InputStream.class);
         } catch (NoSuchMethodException e) {
             e.printStackTrace();
             return;
         }
 
-        DocumentParser parser;
+        // instanciate the file parser
+        FileParser parser;
         try {
-            parser = constructor.newInstance(inputStream, tokenizer);
+            parser = constructor.newInstance(inputStream);
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
             e.printStackTrace();
             return;
         }
 
+        System.out.println("Indexing file " + filename);
+
         parser.parse();
 
         inputStream.close();
+
+        System.out.println("Finished indexing file " + filename);
     }
 
     public void readCorpus(String corpusFolderPath) throws IOException {

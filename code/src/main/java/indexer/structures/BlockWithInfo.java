@@ -1,10 +1,10 @@
 package indexer.structures;
 
-public class BlockWithInfo<T> extends Block {
+public class BlockWithInfo<K extends Comparable<K>, V> extends Block<K> {
 
-    protected T extraInfo;
+    protected V extraInfo;
 
-    protected BlockWithInfo(String key, T extraInfo) {
+    protected BlockWithInfo(K key, V extraInfo) {
         super(key);
         this.extraInfo = extraInfo;
     }
