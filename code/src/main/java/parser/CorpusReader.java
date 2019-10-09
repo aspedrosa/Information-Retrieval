@@ -89,7 +89,7 @@ public class CorpusReader {
             return;
         }
 
-        // instanciate the file parser
+        // instantiate the file parser
         FileParser parser;
         try {
             parser = constructor.newInstance(inputStream);

@@ -8,8 +8,12 @@ import indexer.structures.DocumentWithFrequency;
 import indexer.structures.SimpleTerm;
 import tokenizer.SimpleTokenizer;
 
-import java.io.*;
+import java.io.BufferedOutputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 public class Main {
@@ -70,7 +74,10 @@ public class Main {
                     out.write(term.getTerm().getBytes());
                     out.write(',');
 
-                    for (DocumentWithFrequency doc : index.get(term)) {
+                    Iterator<DocumentWithFrequency> it = index.get(term).iterator();
+                    while (it.hasNext()) {
+                        DocumentWithFrequency doc = it.next();
+
                         String docStr = String.format(
                             "%s:%d",
                             doc.getDocId(),
@@ -78,7 +85,10 @@ public class Main {
                         );
 
                         out.write(docStr.getBytes());
-                        out.write(',');
+
+                        if (it.hasNext()) {
+                            out.write(',');
+                        }
                     }
 
                     out.write('\n');
