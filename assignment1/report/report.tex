@@ -1,0 +1,81 @@
+\documentclass{article}
+\usepackage[english]{babel}
+\usepackage[utf8x]{inputenc}
+\usepackage{url}
+\usepackage{hyperref}
+
+% Images
+\usepackage{graphicx}
+\graphicspath{{images/}}
+
+% Page dimensions
+\usepackage{geometry}
+\geometry{
+  hoffset=0mm,
+  textwidth=17.5cm
+}
+
+% Header and footer
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhead{} % Clear all header fields
+\fancyhead[L]{\includegraphics[width=4cm]{deti.png}}
+\fancyhead[C]{\includegraphics[width=4cm]{ua.png}}
+\fancyhead[R]{\includegraphics[width=3cm]{theoria.png}}
+\fancyfoot{} % Clear all footer fields
+\fancyfoot[R]{Page \thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+% Includes "References" in the table of contents
+\usepackage[nottoc]{tocbibind}
+
+% TITLE PAGE CONTENT
+
+\begin{document}
+\begin{titlepage}
+  \thispagestyle{fancy}
+  \centering
+
+  {\scshape\large Mestrado em Engenharia Informática \par}
+  \vspace{0.5cm}
+  {\scshape\large Recuperação de Informação \par}
+	\vspace{3cm}
+	{\huge\bfseries Assignment 1 \par}
+	\vspace{2cm}
+  Autores\par
+  {\Large\itshape André Pedrosa - 85098 \par}
+  {\Large\itshape João Abílio - TODO \par}
+
+	\vfill
+  Regente \par
+  {\Large Sérgio Matos}
+
+	\vfill
+
+  \today
+\end{titlepage}
+
+% TITLE PAGE CONTENT
+
+\setcounter{page}{2}
+
+\tableofcontents
+
+\newpage
+
+\section{Summary/Abstract}
+\section{Framework}
+
+%\begin{figure}[h]
+%  \center
+%  \includegraphics[width=12.5cm]{....png}
+%  \label{fig:...}
+%  \caption{...}
+%
+%\end{figure}
+
+\bibliographystyle{ieeetr}
+\bibliography{references}
+
+\end{document}
