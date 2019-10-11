@@ -1,4 +1,10 @@
 
+import net.sourceforge.argparse4j.ArgumentParsers;
+import net.sourceforge.argparse4j.impl.Arguments;
+import net.sourceforge.argparse4j.inf.ArgumentParser;
+import net.sourceforge.argparse4j.inf.ArgumentParserException;
+import net.sourceforge.argparse4j.inf.Namespace;
+
 import parsers.CorpusReader;
 import parsers.documents.DocumentParser;
 import parsers.documents.TrecAsciiMedline2004DocParser;
@@ -6,6 +12,8 @@ import parsers.files.TrecAsciiMedline2004FileParser;
 import indexer.FrequencyIndexer;
 import indexer.structures.DocumentWithFrequency;
 import indexer.structures.SimpleTerm;
+import tokenizer.AdvanvedTokenizer;
+import tokenizer.BaseTokenizer;
 import tokenizer.SimpleTokenizer;
 
 import java.io.BufferedOutputStream;
@@ -19,16 +27,20 @@ import java.util.List;
 public class Main {
 
     public static void main(String[] args) {
-        // TODO validate program arguments
-        // arg 1 -> corpus folder
-        // arg 2 -> index output file
+        Namespace parsedArgs = parseProgramArguments(args);
 
         FrequencyIndexer indexer = new FrequencyIndexer();
         DocumentParser.setIndexer(indexer);
 
         System.out.println("Created the indexer");
 
-        SimpleTokenizer tokenizer = new SimpleTokenizer();
+        BaseTokenizer tokenizer;
+        if (parsedArgs.getBoolean("useAdvancedTokenizer")) {
+            tokenizer = new AdvanvedTokenizer();
+        }
+        else {
+            tokenizer = new SimpleTokenizer();
+        }
         DocumentParser.setTokenizer(tokenizer);
 
         System.out.println("Created the tokenizer");
@@ -43,7 +55,7 @@ public class Main {
         long begin = System.currentTimeMillis();
 
         try {
-            cr.readCorpus(args[0]);
+            cr.readCorpus(parsedArgs.getString("corpusFolder"));
         } catch (IOException e) {
             e.printStackTrace();
             System.exit(2);
@@ -53,7 +65,7 @@ public class Main {
 
         BufferedOutputStream output = null;
         try {
-            output = new BufferedOutputStream(new FileOutputStream(args[1]));
+            output = new BufferedOutputStream(new FileOutputStream(parsedArgs.getString("indexOutputFilename")));
         } catch (FileNotFoundException e) {
             System.err.println("Output file not found");
             System.exit(3);
@@ -97,6 +109,57 @@ public class Main {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Defines program's arguments, options, help messages and
+     *  parses the received arguments
+     *
+     * @param args main arguments
+     * @return a namespace with the parsed arguments
+     */
+    private static Namespace parseProgramArguments(String[] args) {
+        ArgumentParser argsParser = ArgumentParsers
+            .newFor("Main")
+            .build()
+            .description(
+                "Parses a set of files that contain documents, indexes those documents" +
+                    " using an inverted index and store that index to a file"
+            );
+
+        argsParser
+            .addArgument("corpusFolder")
+            .type(String.class)
+            .help("Path to folder containing files with documents to index");
+
+        argsParser
+            .addArgument("indexOutputFilename")
+            .type(String.class)
+            .help("Name of the file to which the index will be stored");
+
+        argsParser
+            .addArgument("-a")
+            .dest("useAdvancedTokenizer")
+            .action(Arguments.storeTrue())
+            .help("Use the advanced tokenizer. If not defined" +
+                " the simple one is used");
+
+        argsParser
+            .addArgument("--input-buffer-size")
+            .dest("inputBufferSize")
+            .type(Integer.class)
+            .action(Arguments.store())
+            .help("size in bytes of the buffer for BufferedReader");
+
+        Namespace parsedArgs = null;
+        try {
+            parsedArgs = argsParser.parseArgs(args);
+        } catch (ArgumentParserException e) {
+            argsParser.handleError(e);
+            System.exit(1);
+        }
+
+        return parsedArgs;
     }
 
 }
