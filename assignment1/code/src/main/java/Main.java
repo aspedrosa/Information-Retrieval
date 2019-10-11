@@ -6,8 +6,9 @@ import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
 
 import parsers.CorpusReader;
-import parsers.documents.DocumentParser;
+import parsers.documents.Document;
 import parsers.documents.TrecAsciiMedline2004DocParser;
+import parsers.files.FileParser;
 import parsers.files.TrecAsciiMedline2004FileParser;
 import indexer.FrequencyIndexer;
 import indexer.structures.DocumentWithFrequency;
@@ -29,36 +30,49 @@ public class Main {
     public static void main(String[] args) {
         Namespace parsedArgs = parseProgramArguments(args);
 
-        FrequencyIndexer indexer = new FrequencyIndexer();
-        DocumentParser.setIndexer(indexer);
+        FileParser.setReaderBufferSize(parsedArgs.getInt("inputBufferSize"));
 
+        FrequencyIndexer indexer = new FrequencyIndexer();
         System.out.println("Created the indexer");
 
         BaseTokenizer tokenizer;
         if (parsedArgs.getBoolean("useAdvancedTokenizer")) {
             tokenizer = new AdvanvedTokenizer();
+            System.out.println("Created the Advanced tokenizer");
         }
         else {
             tokenizer = new SimpleTokenizer();
+            System.out.println("Created the Simple tokenizer");
         }
-        DocumentParser.setTokenizer(tokenizer);
 
-        System.out.println("Created the tokenizer");
-
-        CorpusReader cr = new CorpusReader(tokenizer);
+        CorpusReader corpusReader = null;
+        try {
+            corpusReader = new CorpusReader(parsedArgs.getString("corpusFolder"));
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.exit(2);
+        }
 
         TrecAsciiMedline2004DocParser.addFieldToSave("TI");
         TrecAsciiMedline2004DocParser.addFieldToSave("PMID");
-        cr.addParser("gz", TrecAsciiMedline2004FileParser.class);
+        corpusReader.addParser("gz", TrecAsciiMedline2004FileParser.class);
 
         System.out.println("Started parsing the corpus");
         long begin = System.currentTimeMillis();
 
-        try {
-            cr.readCorpus(parsedArgs.getString("corpusFolder"));
-        } catch (IOException e) {
-            e.printStackTrace();
-            System.exit(2);
+        for (FileParser fileParser : corpusReader) {
+            for (Document document : fileParser) {
+                if (document == null) {
+                    // in case some error occurs while reading some file
+                    break;
+                }
+
+                List<String> terms = tokenizer.tokenizeDocument(document.getToTokenize());
+
+                int docId = document.getId();
+                indexer.registerDocument(docId, document.getIdentifier());
+                indexer.indexTerms(docId, terms);
+            }
         }
 
         System.out.println("Finished parsing the corpus in " + (System.currentTimeMillis() - begin));
@@ -68,9 +82,11 @@ public class Main {
             output = new BufferedOutputStream(new FileOutputStream(parsedArgs.getString("indexOutputFilename")));
         } catch (FileNotFoundException e) {
             System.err.println("Output file not found");
-            System.exit(3);
+            System.exit(2);
         }
 
+        System.out.println("Started writing index to disk");
+        begin = System.currentTimeMillis();
         try {
             indexer.persist(output, (out, index) -> {
                 System.out.println("Sorting terms");
@@ -108,7 +124,10 @@ public class Main {
             });
         } catch (IOException e) {
             e.printStackTrace();
+            System.exit(2);
         }
+
+        System.out.println("Finished storing index to disk in " + (System.currentTimeMillis() - begin));
     }
 
     /**
@@ -124,7 +143,7 @@ public class Main {
             .build()
             .description(
                 "Parses a set of files that contain documents, indexes those documents" +
-                    " using an inverted index and store that index to a file"
+                " using an inverted index and store that index to a file"
             );
 
         argsParser
@@ -142,14 +161,14 @@ public class Main {
             .dest("useAdvancedTokenizer")
             .action(Arguments.storeTrue())
             .help("Use the advanced tokenizer. If not defined" +
-                " the simple one is used");
+                  " the simple one is used");
 
         argsParser
             .addArgument("--input-buffer-size")
             .dest("inputBufferSize")
             .type(Integer.class)
             .action(Arguments.store())
-            .help("size in bytes of the buffer for BufferedReader");
+            .help("size in characters of the buffer for BufferedReader");
 
         Namespace parsedArgs = null;
         try {
@@ -161,5 +180,4 @@ public class Main {
 
         return parsedArgs;
     }
-
 }

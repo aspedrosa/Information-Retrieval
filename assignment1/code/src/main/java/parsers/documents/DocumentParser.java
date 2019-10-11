@@ -1,8 +1,5 @@
 package parsers.documents;
 
-import indexer.BaseIndexer;
-import tokenizer.BaseTokenizer;
-
 import java.util.List;
 
 /**
@@ -17,29 +14,12 @@ import java.util.List;
  */
 public abstract class DocumentParser {
 
-    protected int documentId;
+    protected List<String> documentContent;
 
-    private static int CURRENT_DOC_ID = 1;
-
-    protected List<String> document;
-
-    protected static BaseTokenizer tokenizer;
-
-    protected static BaseIndexer indexer;
-
-    public DocumentParser(List<String> document) {
-        this.documentId = CURRENT_DOC_ID++;
-        this.document = document;
+    public DocumentParser(List<String> documentContent) {
+        this.documentContent = documentContent;
     }
 
-    public static void setTokenizer(BaseTokenizer newTokenizer) {
-        tokenizer = newTokenizer;
-    }
-
-    public static void setIndexer(BaseIndexer newIndexer) {
-        indexer = newIndexer;
-    }
-
-    public abstract void parse();
+    public abstract Document parse();
 
 }

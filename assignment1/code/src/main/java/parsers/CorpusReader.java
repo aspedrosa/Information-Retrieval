@@ -1,7 +1,6 @@
 package parsers;
 
 import parsers.files.FileParser;
-import tokenizer.BaseTokenizer;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -15,6 +14,7 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Stack;
 
 /**
  * Class in charge of reading the files from the
@@ -24,19 +24,18 @@ import java.util.Map;
  * TODO create base class, child ones have different
  *  strategies to choose the right file parser
  */
-public class CorpusReader {
+public class CorpusReader implements Iterable<FileParser> {
 
     private Map<String, Class<? extends FileParser>> parsers;
+    private Iterator<Path> corpusFolder;
 
-    private BaseTokenizer tokenizer;
-
-    public CorpusReader(BaseTokenizer tokenizer) {
-        this.tokenizer = tokenizer;
+    public CorpusReader(String corpusFolder) throws IOException {
+        this.corpusFolder = Files.list(Paths.get(corpusFolder)).iterator();
         this.parsers = new HashMap<>();
     }
 
-    public CorpusReader(BaseTokenizer tokenizer, Map<String, Class<? extends FileParser>> parsers) {
-        this.tokenizer = tokenizer;
+    public CorpusReader(String corpusFolder, Map<String, Class<? extends FileParser>> parsers) throws IOException {
+        this.corpusFolder = Files.list(Paths.get(corpusFolder)).iterator();
         this.parsers = parsers;
     }
 
@@ -44,70 +43,96 @@ public class CorpusReader {
         parsers.put(extension, parser);
     }
 
-    private void processFolder(Path folder) throws IOException {
-        Iterator<Path> it = Files.list(folder).iterator();
-
-        while(it.hasNext()) {
-            Path path = it.next();
-
-            if (Files.isDirectory(path)) {
-                processFolder(path);
-            }
-            else {
-                processFile(path);
-            }
-        }
+    @Override
+    public Iterator<FileParser> iterator() {
+        return new InternalIterator(corpusFolder);
     }
 
-    private void processFile(Path path) throws IOException {
-        InputStream inputStream = null;
-        try {
-            inputStream = new FileInputStream(path.toFile());
-        } catch (FileNotFoundException e) {
-            // Impossible to happen since this file was
-            //  found recursively
+    private class InternalIterator implements Iterator<FileParser> {
+
+        private Stack<Iterator<Path>> paths;
+        private FileParser currentFileParser;
+
+        private InternalIterator(Iterator<Path> corpusFolder) {
+            paths = new Stack<>();
+            paths.push(corpusFolder);
         }
 
-        // getting file extension
-        String filename = path.getFileName().toString();
-        String[] filenameParts = filename.split("\\.");
-        String extension = filenameParts[filenameParts.length - 1];
+        public boolean hasNext() {
+            while (!paths.empty()) {
+                Iterator<Path> currentFolder = paths.peek();
 
-        // get the class of the file parser
-        Class<? extends FileParser> parserClass = parsers.get(extension);
-        if (parserClass == null) {
-            System.err.println("No parser found for file " + filename);
-            return;
+                while (currentFolder.hasNext()) {
+                    Path path = currentFolder.next();
+
+                    if (Files.isDirectory(path)) {
+                        paths.push(currentFolder);
+                        try {
+                            currentFolder = Files.list(path).iterator();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                            System.exit(2);
+                        }
+                    }
+                    else {
+                        currentFileParser = createFileParser(path);
+                        if (currentFileParser != null) {
+                            return true;
+                        }
+                    }
+                }
+
+                paths.pop();
+            }
+
+            return false;
         }
 
-        // get the constructor of the file parser
-        Constructor<? extends FileParser> constructor;
-        try {
-            constructor = parserClass.getConstructor(InputStream.class);
-        } catch (NoSuchMethodException e) {
-            e.printStackTrace();
-            return;
+        private FileParser createFileParser(Path path) {
+            InputStream inputStream = null;
+            try {
+                inputStream = new FileInputStream(path.toFile());
+            } catch (FileNotFoundException e) {
+                // Impossible to happen since this file was
+                //  found recursively
+            }
+
+            // getting file extension
+            String filename = path.getFileName().toString();
+            String[] filenameParts = filename.split("\\.");
+            String extension = filenameParts[filenameParts.length - 1];
+
+            // get the class of the file parser
+            Class<? extends FileParser> parserClass = parsers.get(extension);
+            if (parserClass == null) {
+                System.err.println("No parser found for file " + filename);
+                return null;
+            }
+
+            // get the constructor of the file parser
+            Constructor<? extends FileParser> constructor = null;
+            try {
+                constructor = parserClass.getConstructor(InputStream.class);
+            } catch (NoSuchMethodException e) {
+                e.printStackTrace();
+                System.exit(3);
+            }
+
+            // instantiate the file parser
+            FileParser parser = null;
+            try {
+                parser = constructor.newInstance(inputStream);
+            } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+                e.printStackTrace();
+                System.exit(3);
+            }
+
+            return parser;
         }
 
-        // instantiate the file parser
-        FileParser parser;
-        try {
-            parser = constructor.newInstance(inputStream);
-        } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
-            e.printStackTrace();
-            return;
+        @Override
+        public FileParser next() {
+            return currentFileParser;
         }
-
-        System.out.println("Indexing file " + filename);
-
-        parser.parse();
-
-        inputStream.close();
-
-        System.out.println("Finished indexing file " + filename);
-    }
-
-    public void readCorpus(String corpusFolderPath) throws IOException {
-        processFolder(Paths.get(corpusFolderPath));
     }
 }

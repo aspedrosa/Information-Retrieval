@@ -1,13 +1,15 @@
 package parsers.documents;
 
-import java.util.*;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.List;
 
 public class TrecAsciiMedline2004DocParser extends DocumentParser {
 
     private static Set<String> fieldsToSave = new HashSet<>();
 
-    public TrecAsciiMedline2004DocParser(List<String> document) {
-        super(document);
+    public TrecAsciiMedline2004DocParser(List<String> documentContent) {
+        super(documentContent);
     }
 
     public static void addFieldToSave(String fieldToSave) {
@@ -19,18 +21,15 @@ public class TrecAsciiMedline2004DocParser extends DocumentParser {
     }
 
     @Override
-    public void parse() {
+    public Document parse() {
         // name of a field
         String label = "";
-        // content of the PMID field
-        String identifier = "";
         // content of a field
         StringBuilder content = new StringBuilder();
 
-        // terms received from the tokenizer to index
-        List<String> terms = new LinkedList<>();
+        Document document = new Document();
 
-        for (String line : document) {
+        for (String line : documentContent) {
             // if the current lines starts with a space
             //  then append to the field's content the current line
             if (line.charAt(0) == ' ') {
@@ -46,12 +45,13 @@ public class TrecAsciiMedline2004DocParser extends DocumentParser {
                     // if the label of the field is PMID save it's content to
                     //  the identifier
                     if (label.equals("PMID")) {
-                        identifier = content.toString();
+                        document.setIdentifier(content.toString());
                     }
                     else {
+                        // TODO update
                         // else tokenize the conent and add the resulting terms to
                         //  the list of terms
-                        terms.addAll(tokenizer.tokenizeString(content.toString()));
+                        document.addStringToTokenize(content.toString());
                     }
                 }
 
@@ -61,15 +61,12 @@ public class TrecAsciiMedline2004DocParser extends DocumentParser {
             }
         }
 
+        // TODO update. also check if field is PMID
         // needed in case the last field parsed is to be tokenized
         if (fieldsToSave.contains(label)) {
-            terms.addAll(tokenizer.tokenizeString(content.toString()));
+            document.addStringToTokenize(content.toString());
         }
 
-        indexer.registerDocument(documentId ,identifier);
-
-        if (!terms.isEmpty()) {
-            indexer.indexTerms(documentId, terms);
-        }
+        return document;
     }
 }

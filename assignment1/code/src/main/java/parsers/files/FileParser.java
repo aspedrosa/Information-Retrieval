@@ -1,5 +1,8 @@
 package parsers.files;
 
+import parsers.documents.Document;
+
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -7,13 +10,19 @@ import java.io.InputStream;
  * Class in charge of extracting the document(s)
  *  from a specific file
  */
-public abstract class FileParser {
+public abstract class FileParser implements Iterable<Document> {
 
-    protected InputStream input;
+    protected BufferedReader reader;
 
-    public FileParser(InputStream input) {
-        this.input = input;
+    protected static Integer readerBufferSize;
+
+    public static void setReaderBufferSize(Integer readerBufferSize) {
+        FileParser.readerBufferSize = readerBufferSize;
     }
 
-    public abstract void parse() throws IOException;
+    public FileParser(InputStream input) throws IOException {
+        reader = inputStreamToBufferedReader(input);
+    }
+
+    public abstract BufferedReader inputStreamToBufferedReader(InputStream input) throws IOException;
 }
