@@ -1,7 +1,7 @@
-package parser.file;
+package parsers.files;
 
-import parser.document.DocumentParser;
-import parser.document.TrecAsciiMedline2004DocParser;
+import parsers.documents.DocumentParser;
+import parsers.documents.TrecAsciiMedline2004DocParser;
 
 import java.io.BufferedReader;
 import java.io.IOException;

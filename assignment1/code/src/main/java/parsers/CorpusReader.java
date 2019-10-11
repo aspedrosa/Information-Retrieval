@@ -1,6 +1,6 @@
-package parser;
+package parsers;
 
-import parser.file.FileParser;
+import parsers.files.FileParser;
 import tokenizer.BaseTokenizer;
 
 import java.io.FileInputStream;

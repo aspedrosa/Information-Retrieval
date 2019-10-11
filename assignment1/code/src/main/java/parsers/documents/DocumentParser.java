@@ -1,4 +1,4 @@
-package parser.document;
+package parsers.documents;
 
 import indexer.BaseIndexer;
 import tokenizer.BaseTokenizer;

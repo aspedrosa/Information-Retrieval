@@ -1,8 +1,8 @@
 
-import parser.CorpusReader;
-import parser.document.DocumentParser;
-import parser.document.TrecAsciiMedline2004DocParser;
-import parser.file.TrecAsciiMedline2004FileParser;
+import parsers.CorpusReader;
+import parsers.documents.DocumentParser;
+import parsers.documents.TrecAsciiMedline2004DocParser;
+import parsers.files.TrecAsciiMedline2004FileParser;
 import indexer.FrequencyIndexer;
 import indexer.structures.DocumentWithFrequency;
 import indexer.structures.SimpleTerm;
