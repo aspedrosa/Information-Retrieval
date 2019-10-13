@@ -12,14 +12,8 @@ import java.util.List;
  *  the indexer's registerDocument method
  *  to associate an integer to a document identifier
  */
-public abstract class DocumentParser {
+public interface DocumentParser {
 
-    protected List<String> documentContent;
-
-    public DocumentParser(List<String> documentContent) {
-        this.documentContent = documentContent;
-    }
-
-    public abstract Document parse();
+    Document parse(List<String> documentContent);
 
 }

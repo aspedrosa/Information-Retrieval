@@ -1,16 +1,12 @@
 package parsers.documents;
 
+import java.util.List;
 import java.util.Set;
 import java.util.HashSet;
-import java.util.List;
 
-public class TrecAsciiMedline2004DocParser extends DocumentParser {
+public class TrecAsciiMedline2004DocParser implements DocumentParser {
 
     private static Set<String> fieldsToSave = new HashSet<>();
-
-    public TrecAsciiMedline2004DocParser(List<String> documentContent) {
-        super(documentContent);
-    }
 
     public static void addFieldToSave(String fieldToSave) {
         fieldsToSave.add(fieldToSave);
@@ -21,7 +17,7 @@ public class TrecAsciiMedline2004DocParser extends DocumentParser {
     }
 
     @Override
-    public Document parse() {
+    public Document parse(List<String> documentContent) {
         // name of a field
         String label = "";
         // content of a field

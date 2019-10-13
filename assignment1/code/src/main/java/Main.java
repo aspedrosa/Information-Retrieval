@@ -5,7 +5,8 @@ import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
 
-import parsers.CorpusReader;
+import parsers.corpus.CorpusReader;
+import parsers.corpus.ResolveByExtension;
 import parsers.documents.Document;
 import parsers.documents.TrecAsciiMedline2004DocParser;
 import parsers.files.FileParser;
@@ -21,9 +22,18 @@ import java.io.BufferedOutputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+
+/**
+ * exit codes
+ * 1- args erros
+ * 2- io exceptions
+ */
 
 public class Main {
 
@@ -45,33 +55,43 @@ public class Main {
             System.out.println("Created the Simple tokenizer");
         }
 
-        CorpusReader corpusReader = null;
+        Iterator<Path> corpusFolder = null;
         try {
-            corpusReader = new CorpusReader(parsedArgs.getString("corpusFolder"));
+            corpusFolder = Files.list(Paths.get(parsedArgs.getString("corpusFolder"))).iterator();
         } catch (IOException e) {
+            System.err.println("ERROR listing the corpus folder\n");
             e.printStackTrace();
             System.exit(2);
         }
 
+        ResolveByExtension fileParserResolver = new ResolveByExtension();
+        fileParserResolver.addParser("gz", TrecAsciiMedline2004FileParser.class);
+
+        CorpusReader corpusReader = new CorpusReader(corpusFolder, fileParserResolver);
+
         TrecAsciiMedline2004DocParser.addFieldToSave("TI");
         TrecAsciiMedline2004DocParser.addFieldToSave("PMID");
-        corpusReader.addParser("gz", TrecAsciiMedline2004FileParser.class);
 
         System.out.println("Started parsing the corpus");
         long begin = System.currentTimeMillis();
 
         for (FileParser fileParser : corpusReader) {
             for (Document document : fileParser) {
-                if (document == null) {
-                    // in case some error occurs while reading some file
-                    break;
-                }
-
                 List<String> terms = tokenizer.tokenizeDocument(document.getToTokenize());
 
                 int docId = document.getId();
                 indexer.registerDocument(docId, document.getIdentifier());
-                indexer.indexTerms(docId, terms);
+
+                if (!terms.isEmpty()) {
+                    indexer.indexTerms(docId, terms);
+                }
+            }
+
+            try {
+                fileParser.close();
+            } catch (IOException e) {
+                System.err.println("ERROR closing file " + fileParser.getFilename() + "\n");
+                e.printStackTrace();
             }
         }
 
@@ -122,6 +142,8 @@ public class Main {
                     out.write('\n');
                 }
             });
+
+            output.close();
         } catch (IOException e) {
             e.printStackTrace();
             System.exit(2);
