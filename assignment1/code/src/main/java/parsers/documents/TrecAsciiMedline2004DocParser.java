@@ -4,18 +4,41 @@ import java.util.List;
 import java.util.Set;
 import java.util.HashSet;
 
+/**
+ * Specific implementation of the DocumentParser
+ */
 public class TrecAsciiMedline2004DocParser implements DocumentParser {
 
+    /**
+     * Which fields of this specific file should this parser save
+     */
     private static Set<String> fieldsToSave = new HashSet<>();
 
+    /**
+     * Inserts a new field to save
+     *
+     * @param fieldToSave new field
+     */
     public static void addFieldToSave(String fieldToSave) {
         fieldsToSave.add(fieldToSave);
     }
 
+    /**
+     * Setters for the fieldToSave field
+     *
+     * @param newFieldsToSave new set with fields to save
+     */
     public static void setFieldsToSave(Set<String> newFieldsToSave) {
         fieldsToSave = newFieldsToSave;
     }
 
+    /**
+     * Extracts the content from the fields in fieldsToSave
+     *  field and gets the document identifier
+     *
+     * @param documentContent to parse
+     * @return Document object with the content to tokenize
+     */
     @Override
     public Document parse(List<String> documentContent) {
         // name of a field
@@ -44,9 +67,7 @@ public class TrecAsciiMedline2004DocParser implements DocumentParser {
                         document.setIdentifier(content.toString());
                     }
                     else {
-                        // TODO update
-                        // else tokenize the conent and add the resulting terms to
-                        //  the list of terms
+                        // else add the content to the toTokenize list
                         document.addStringToTokenize(content.toString());
                     }
                 }
@@ -57,10 +78,13 @@ public class TrecAsciiMedline2004DocParser implements DocumentParser {
             }
         }
 
-        // TODO update. also check if field is PMID
-        // needed in case the last field parsed is to be tokenized
+        // needed in case the last field parsed needs to be tokenized
         if (fieldsToSave.contains(label)) {
             document.addStringToTokenize(content.toString());
+        }
+        // or is the identifier
+        else if (label.endsWith("PMID")) {
+            document.setIdentifier(content.toString());
         }
 
         return document;

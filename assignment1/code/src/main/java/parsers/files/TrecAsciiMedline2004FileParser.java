@@ -12,18 +12,45 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
 
+/**
+ * Implementation of a specific file parser
+ */
 public class TrecAsciiMedline2004FileParser extends FileParser {
 
+    /**
+     * List to accumulate lines of a document until
+     *  a full document is fetched
+     */
     private List<String> documentContent;
 
+    /**
+     * Instance of DocumentParser to parse
+     *  documents
+     */
     private DocumentParser documentParser;
 
+    /**
+     * Main constructor
+     *
+     * @param input stream to read from
+     * @param filename absolute path to file to parse
+     * @throws IOException if some error occur while creating the BufferedReader
+     */
     public TrecAsciiMedline2004FileParser(InputStream input, String filename) throws IOException {
         super(input, filename);
         documentContent = new LinkedList<>();
         documentParser = new TrecAsciiMedline2004DocParser();
     }
 
+    /**
+     * Wrappes the InputStream with GZIPInputStream and then
+     *  create a BufferedReader
+     *
+     * @param input stream to read from
+     * @return a BufferedReader instance
+     * @throws IOException if some error occurs while creating the
+     *  buffered reader
+     */
     @Override
     public BufferedReader inputStreamToBufferedReader(InputStream input) throws IOException {
         InputStreamReader inputReader = new InputStreamReader(
@@ -38,9 +65,21 @@ public class TrecAsciiMedline2004FileParser extends FileParser {
         return new BufferedReader(inputReader, readerBufferSize);
     }
 
+    /**
+     * Keeps adding to the documentContent list until an
+     *  empty line is found.
+     *
+     * @param line to parse
+     * @return a Document object if the parsed lines until
+     *  now result in a document, null otherwise
+     */
     @Override
     public Document handleLine(String line) {
         // if the line is empty the previous document ended
+        /**
+         * TODO if the last line is not an empty line
+         *  the last document will not be indexed
+         */
         if (line.equals("")) {
             Document document = documentParser.parse(documentContent);
             documentContent.clear();
