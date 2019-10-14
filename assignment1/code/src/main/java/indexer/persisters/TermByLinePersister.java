@@ -9,9 +9,24 @@ import java.io.OutputStream;
 import java.util.Iterator;
 import java.util.List;
 
-public abstract class TermByLinePersister<T extends Block &BaseTerm,
-    D extends Block &BaseDocument> extends ForEachTermPersister<T, D> {
+/**
+ * Writes term's information by line
+ *
+ * @param <T> type of the terms
+ * @param <D> type of the documents
+ */
+public abstract class TermByLinePersister<T extends Block & BaseTerm,
+                                          D extends Block & BaseDocument> extends ForEachTermPersister<T, D> {
 
+    /**
+     * Writes the term and its posting list on a csv format (First column is the term
+     *  then the several documents).
+     *
+     * @param output to where the index will be written
+     * @param term term object
+     * @param documents posting list associated to the term
+     * @throws IOException if some error occurs while writing the index to the stream
+     */
     @Override
     public final void handleTerm(OutputStream output, T term, List<D> documents) throws IOException {
         output.write(term.getTerm().getBytes());
