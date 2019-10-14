@@ -12,6 +12,7 @@ import parsers.documents.TrecAsciiMedline2004DocParser;
 import parsers.files.FileParser;
 import parsers.files.TrecAsciiMedline2004FileParser;
 import indexer.FrequencyIndexer;
+import indexer.persisters.TermByLinePersister;
 import indexer.structures.DocumentWithFrequency;
 import indexer.structures.SimpleTerm;
 import tokenizer.AdvanvedTokenizer;
@@ -25,7 +26,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -99,52 +99,29 @@ public class Main {
 
         BufferedOutputStream output = null;
         try {
-            output = new BufferedOutputStream(new FileOutputStream(parsedArgs.getString("indexOutputFilename")));
+            output = new BufferedOutputStream(
+                new FileOutputStream(
+                    parsedArgs.getString("indexOutputFilename")
+                )
+            );
         } catch (FileNotFoundException e) {
-            System.err.println("Output file not found");
+            System.err.println("ERROR error while opening file to write the index\n");
             System.exit(2);
         }
 
         System.out.println("Started writing index to disk");
         begin = System.currentTimeMillis();
         try {
-            indexer.persist(output, (out, index) -> {
-                System.out.println("Sorting terms");
-
-                List<SimpleTerm> sortedTerms = new ArrayList<>(index.keySet());
-                sortedTerms.sort(SimpleTerm::compareTo);
-
-                System.out.println("Finished sorting terms");
-
-                System.out.println("Writing index to disk");
-
-                for (SimpleTerm term : sortedTerms) {
-                    out.write(term.getTerm().getBytes());
-                    out.write(',');
-
-                    Iterator<DocumentWithFrequency> it = index.get(term).iterator();
-                    while (it.hasNext()) {
-                        DocumentWithFrequency doc = it.next();
-
-                        String docStr = String.format(
-                            "%s:%d",
-                            doc.getDocId(),
-                            doc.getFrequency()
-                        );
-
-                        out.write(docStr.getBytes());
-
-                        if (it.hasNext()) {
-                            out.write(',');
-                        }
-                    }
-
-                    out.write('\n');
+            indexer.persist(output, new TermByLinePersister<SimpleTerm, DocumentWithFrequency>() {
+                @Override
+                public String handleDocument(DocumentWithFrequency document) {
+                    return String.format("%d:%d", document.getDocId(), document.getFrequency());
                 }
             });
 
             output.close();
         } catch (IOException e) {
+            System.err.println("ERROR while writing the index to disk\n");
             e.printStackTrace();
             System.exit(2);
         }
