@@ -1,3 +1,4 @@
+package main;
 
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.impl.Arguments;
@@ -30,13 +31,31 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * exit codes
- * 1- args erros
- * 2- io exceptions
+ * Class containing the main method
  */
-
 public class Main {
 
+    /**
+     * Application starting point
+     *
+     * Execution flow:
+     * <ul>
+     *  <li>1. Parse program options and arguments</li>
+     *  <li>2. Instantiate both an indexer and tokenizer</li>
+     *  <li>3. Create a CorpusReader</li>
+     *  <li>4. Create the index while iterating over the corpus</li>
+     *  <li>5. Write the index to disk</li>
+     * </ul>
+     *
+     * Exit codes:
+     * <ul>
+     *  <li>0: program executed normally without errors</li>
+     *  <li>1: errors occurred related to program options or arguments</li>
+     *  <li>2: errors occurred related to IO</li>
+     * </ul>
+     *
+     * @param args program options and arguments
+     */
     public static void main(String[] args) {
         Namespace parsedArgs = parseProgramArguments(args);
 
@@ -55,6 +74,7 @@ public class Main {
             System.out.println("Created the Simple tokenizer");
         }
 
+        // create an iterator over the corpus folder content
         Iterator<Path> corpusFolder = null;
         try {
             corpusFolder = Files.list(Paths.get(parsedArgs.getString("corpusFolder"))).iterator();
@@ -64,11 +84,13 @@ public class Main {
             System.exit(2);
         }
 
+        // define strategy to choose the right file parser for each file
         ResolveByExtension fileParserResolver = new ResolveByExtension();
         fileParserResolver.addParser("gz", TrecAsciiMedline2004FileParser.class);
 
         CorpusReader corpusReader = new CorpusReader(corpusFolder, fileParserResolver);
 
+        // set relevant fields to parse from the TrecAsciiMedline2004's documents
         TrecAsciiMedline2004DocParser.addFieldToSave("TI");
         TrecAsciiMedline2004DocParser.addFieldToSave("PMID");
 
