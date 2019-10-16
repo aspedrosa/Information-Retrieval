@@ -3,6 +3,7 @@ package indexer;
 import indexer.structures.DocumentWithFrequency;
 import indexer.structures.SimpleTerm;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;

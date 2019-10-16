@@ -38,6 +38,8 @@ public class TermWithFrequency extends BlockWithInfo<String, Integer> implements
     /**
      * Function to allow update on the term frequency
      *  after instantiation
+     *
+     * @param quantity to add to the current frequency
      */
     public void increaseFrequency(int quantity) {
         extraInfo += quantity;

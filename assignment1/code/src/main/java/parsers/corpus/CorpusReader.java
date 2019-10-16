@@ -45,11 +45,12 @@ public final class CorpusReader implements Iterable<FileParser> {
      * Creates an iterator to iterate over the
      *  several file parsers of each file.
      *
-     * If you want to iterate over the corpus folder
+     * <strong>If you want to iterate over the corpus folder
      *  several times one have to instantiate a new
      *  CorpusReader class because the iterator over
      *  the corpus folder received on the constructor
      *  is used
+     *  </strong>
      *
      * @return iterator of FileParsers
      */
@@ -62,8 +63,8 @@ public final class CorpusReader implements Iterable<FileParser> {
      * Iterator to iterate over the files/folder of
      *  the corpus folder and return the right
      *  FileParser for each file
-     * This iterator was implemented assuming that the user
-     *  will call hasNext() before a next() call
+     * <strong>This iterator was implemented assuming that the user
+     *  will call hasNext() before a next() call</strong>
      */
     private class InternalIterator implements Iterator<FileParser> {
 

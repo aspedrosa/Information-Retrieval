@@ -1,5 +1,6 @@
 /**
- * Classes with different ways to persist the inverted index
+ * Classes with different ways to persist the
+ *  internal structures of the BasePersister class
  */
 package indexer.persisters;
 

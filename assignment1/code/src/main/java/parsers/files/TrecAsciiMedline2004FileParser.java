@@ -75,11 +75,11 @@ public class TrecAsciiMedline2004FileParser extends FileParser {
      */
     @Override
     public Document handleLine(String line) {
-        // if the line is empty the previous document ended
-        /**
-         * TODO if the last line is not an empty line
+        /*
+         * WARNING if the last line is not an empty line
          *  the last document will not be indexed
          */
+        // if the line is empty the previous document ended
         if (line.equals("")) {
             Document document = documentParser.parse(documentContent);
             documentContent.clear();

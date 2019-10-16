@@ -1,5 +1,6 @@
 package main;
 
+import indexer.persisters.IndexThenDocIdent;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.impl.Arguments;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
@@ -13,7 +14,6 @@ import parsers.documents.TrecAsciiMedline2004DocParser;
 import parsers.files.FileParser;
 import parsers.files.TrecAsciiMedline2004FileParser;
 import indexer.FrequencyIndexer;
-import indexer.persisters.TermByLinePersister;
 import indexer.structures.DocumentWithFrequency;
 import indexer.structures.SimpleTerm;
 import tokenizer.AdvancedTokenizer;
@@ -153,12 +153,16 @@ public class Main {
         System.out.println("Started writing index to disk");
         begin = System.currentTimeMillis();
         try {
-            indexer.persist(output, new TermByLinePersister<SimpleTerm, DocumentWithFrequency>() {
-                @Override
-                public String handleDocument(DocumentWithFrequency document) {
-                    return String.format("%d:%d", document.getDocId(), document.getFrequency());
-                }
-            });
+            indexer.persist(output, new IndexThenDocIdent<>(
+                new indexer.persisters.inverted_index.CSV<SimpleTerm, DocumentWithFrequency>() {
+                    @Override
+                    public String handleDocument(DocumentWithFrequency document) {
+                        return String.format("%d:%d", document.getDocId(), document.getFrequency());
+                    }
+                },
+                new indexer.persisters.document_identification.CSV(),
+                "--\n"
+            ));
 
             output.close();
         } catch (IOException e) {
@@ -250,8 +254,9 @@ public class Main {
         argsParser
             .addArgument("--stop-words-file")
             .dest("stopWordsFile")
+            .type(String.class)
             .action(Arguments.store())
-            .help("TODO");
+            .help("path to file containing the stop words");
 
         argsParser
             .addArgument("--input-buffer-size")

@@ -21,16 +21,31 @@ import java.util.Map;
 public abstract class BaseIndexer<T extends Block & BaseTerm, D extends Block & BaseDocument> {
 
     /**
-     * Object that holds
+     * The main data structure of the index.
+     * Has the association between terms and the documents that
+     *  contains it
      */
     protected Map<T, List<D>> invertedIndex;
 
+    /**
+     * Associates a document id to an identifier of a document
+     */
     protected Map<Integer, String> documentIdentification;
 
+    /**
+     * Getter for the invertedIndex
+     *
+     * @return an unmodifiable version of the invertedIndex
+     */
     public Map<T, List<D>> getInvertedIndex() {
         return Collections.unmodifiableMap(invertedIndex);
     }
 
+    /**
+     * Getter for the documentIdentification
+     *
+     * @return an unmodifiable version of the documentIdentification
+     */
     public Map<Integer, String> getDocumentIdentification() {
         return Collections.unmodifiableMap(documentIdentification);
     }
@@ -60,12 +75,12 @@ public abstract class BaseIndexer<T extends Block & BaseTerm, D extends Block & 
      * Method called to save the index
      *
      * @param output Stream to write the index
-     * @param persister class that handles how to write the index to the stream (Persisting Strategy).
+     * @param persister class that handles how to write the internal structures to the stream (Persisting Strategy).
      * @throws IOException if some error occurs while writing the
      *  index to the stream
      */
     public final void persist(OutputStream output, BasePersister<T, D> persister) throws IOException {
-        persister.persist(output, invertedIndex);
+        persister.persist(output, invertedIndex, documentIdentification);
     }
 
     /**

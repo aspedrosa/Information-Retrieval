@@ -1,4 +1,4 @@
-package indexer.persisters;
+package indexer.persisters.inverted_index;
 
 import indexer.structures.BaseDocument;
 import indexer.structures.BaseTerm;
@@ -10,12 +10,12 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * Writes term's information by line
+ * Writes term's information in a csv format
  *
  * @param <T> type of the terms
  * @param <D> type of the documents
  */
-public abstract class TermByLinePersister<T extends Block & BaseTerm,
+public abstract class CSV<T extends Block & BaseTerm,
                                           D extends Block & BaseDocument> extends ForEachTermPersister<T, D> {
 
     /**

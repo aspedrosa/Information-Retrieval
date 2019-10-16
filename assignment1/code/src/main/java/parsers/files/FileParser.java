@@ -42,9 +42,13 @@ public abstract class FileParser implements Iterable<Document>, Closeable {
      *  is &lt;= 0
      */
     public static void setReaderBufferSize(Integer readerBufferSize) {
-        //if (readerBufferSize <= 0) {
-        //    throw new IllegalArgumentException("readerbuffersize must be > 0");
-        //}
+        if (readerBufferSize == null) {
+            return;
+        }
+        else if (readerBufferSize <= 0) {
+            throw new IllegalArgumentException("readerBufferSize must be > 0");
+        }
+
         FileParser.readerBufferSize = readerBufferSize;
     }
 
@@ -110,8 +114,8 @@ public abstract class FileParser implements Iterable<Document>, Closeable {
 
     /**
      * Iterator to retrieve documents from the file
-     * This iterator was implemented assuming that the user
-     *  will call hasNext() before a next() call
+     * <strong>This iterator was implemented assuming that the user
+     *  will call hasNext() before a next() call</strong>
      */
     private class InternalIterator implements Iterator<Document> {
 

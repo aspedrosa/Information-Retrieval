@@ -1,4 +1,4 @@
-package indexer.persisters;
+package indexer.persisters.inverted_index;
 
 import indexer.structures.BaseDocument;
 import indexer.structures.BaseTerm;
@@ -17,7 +17,7 @@ import java.util.Map;
  * @param <D> type of the documents
  */
 public abstract class ForEachTermPersister<T extends Block & BaseTerm,
-                                           D extends Block & BaseDocument> implements BasePersister<T, D> {
+                                           D extends Block & BaseDocument> implements InvertedIndexBasePersister<T, D> {
 
     /**
      * Sorts the terms present on the inverted index and then

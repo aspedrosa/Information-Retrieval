@@ -10,21 +10,22 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * All persisting strategies must extend this class
+ * Base class of a strategy to store the two
+ *  internal structures of an indexer
  *
  * @param <T> type of the terms
  * @param <D> type of the documents
  */
-public interface BasePersister<T extends Block & BaseTerm, D extends Block & BaseDocument> {
+public interface BasePersister<T extends Block&BaseTerm, D extends Block &BaseDocument> {
 
     /**
-     * Method called to by the indexer to write the inverted index
-     *  to the output stream
+     * Applies the persisting strategy
      *
-     * @param output to where the index will be written
-     * @param invertedIndex the inverted index held by the indexer
-     * @throws IOException if some error occurs while writting the index to the stream
+     * @param output the stream to write the strucutres
+     * @param invertedIndex of the indexer
+     * @param documentIdentification of the indexer
+     * @throws IOException if some error occurs while writing
      */
-    void persist(OutputStream output, Map<T, List<D>> invertedIndex) throws IOException;
+    void persist(OutputStream output, Map<T, List<D>> invertedIndex, Map<Integer, String> documentIdentification ) throws IOException;
 
 }
