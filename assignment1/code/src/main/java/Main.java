@@ -60,8 +60,13 @@ public class Main {
         System.out.println("Started parsing the corpus");
         long begin = System.currentTimeMillis();
 
+        int count = 0;
         for (FileParser fileParser : corpusReader) {
             for (Document document : fileParser) {
+                /**if (count == 1000){
+                    break;
+                }
+                count++;**/
                 if (document == null) {
                     // in case some error occurs while reading some file
                     break;
@@ -71,7 +76,10 @@ public class Main {
 
                 int docId = document.getId();
                 indexer.registerDocument(docId, document.getIdentifier());
-                indexer.indexTerms(docId, terms);
+
+                if (!terms.isEmpty()){
+                    indexer.indexTerms(docId, terms);
+                }
             }
         }
 
