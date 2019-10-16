@@ -1,8 +1,20 @@
 
 package tokenizer.linguistic_rules;
 
-import java.util.ArrayList;
+import java.util.List;
 
-public interface LinguisticRule {
-    public ArrayList<String> readStopWords();
+public abstract class LinguisticRule {
+
+    protected LinguisticRule next;
+
+    public LinguisticRule() {
+        this.next = new ReturnRule();
+    }
+
+    public LinguisticRule(LinguisticRule next) {
+        this.next = next;
+    }
+
+    public abstract List<String> apply(List<String> toApply);
+
 }

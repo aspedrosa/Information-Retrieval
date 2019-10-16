@@ -16,32 +16,21 @@ public abstract class BaseTokenizer {
     /**
      * Rules to be applied to the lines to be tokenized
      */
-    protected List<LinguisticRule> rules;
+    protected LinguisticRule ruleChain;
 
     /**
      * Default constructor
      */
-    public BaseTokenizer() {
-        this.rules = new LinkedList<>();
-    }
+    public BaseTokenizer() {}
 
     /**
      * Alternative constructor
      *
-     * @param rules rules to be applied to the
+     * @param ruleChain rules to be applied to the
      *  lines to be tokenized
      */
-    public BaseTokenizer(List<LinguisticRule> rules) {
-        this.rules = rules;
-    }
-
-    /**
-     * Adds new a rule
-     *
-     * @param newRule the new rule
-     */
-    public void addRule(LinguisticRule newRule) {
-        rules.add(newRule);
+    public BaseTokenizer(LinguisticRule ruleChain) {
+        this.ruleChain = ruleChain;
     }
 
     /**
