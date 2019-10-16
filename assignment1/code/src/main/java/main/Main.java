@@ -149,6 +149,8 @@ public class Main {
         }
 
         System.out.println("Finished storing index to disk in " + (System.currentTimeMillis() - begin));
+
+        Assignment1Results.results(indexer.getInvertedIndex());
     }
 
     /**
