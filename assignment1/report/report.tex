@@ -1,81 +1,247 @@
-\documentclass{article}
+% Based on a template created by João Alegria (https://github.com/joao-alegria)
+%  and Filipe Pires (https://github.com/FilipePires98)
+ 
+\documentclass[12pt]{article}
+
 \usepackage[english]{babel}
 \usepackage[utf8x]{inputenc}
-\usepackage{url}
+
+\usepackage{float}
 \usepackage{hyperref}
+\usepackage{times}
+\usepackage{url}
 
 % Images
 \usepackage{graphicx}
 \graphicspath{{images/}}
 
 % Page dimensions
-\usepackage{geometry}
-\geometry{
-  hoffset=0mm,
-  textwidth=17.5cm
+\topmargin -1.0cm
+\oddsidemargin 0.0cm
+\textwidth 16cm 
+\textheight 23cm
+\footskip 1.0cm
+
+% TITLE PAGE CONTENT BEGIN
+
+\title{Assignmnet 1}
+
+\author{
+    André Pedrosa [85098], João Abílio [8]\\
+    \\
+    Recuperação de informação\\
+    \normalsize{Departamento de Eletrónica, Telecomunicações e Informática}\\
+    \normalsize{Universidade de Aveiro}\\
 }
 
-% Header and footer
-\usepackage{fancyhdr}
-\pagestyle{fancy}
-\fancyhead{} % Clear all header fields
-\fancyhead[L]{\includegraphics[width=4cm]{deti.png}}
-\fancyhead[C]{\includegraphics[width=4cm]{ua.png}}
-\fancyhead[R]{\includegraphics[width=3cm]{theoria.png}}
-\fancyfoot{} % Clear all footer fields
-\fancyfoot[R]{Page \thepage}
-\renewcommand{\headrulewidth}{0.4pt}
-\renewcommand{\footrulewidth}{0.4pt}
+\date{16 de outubro de 2019}
 
-% Includes "References" in the table of contents
-\usepackage[nottoc]{tocbibind}
-
-% TITLE PAGE CONTENT
+% TITLE PAGE CONTENT END
 
 \begin{document}
-\begin{titlepage}
-  \thispagestyle{fancy}
-  \centering
 
-  {\scshape\large Mestrado em Engenharia Informática \par}
-  \vspace{0.5cm}
-  {\scshape\large Recuperação de Informação \par}
-	\vspace{3cm}
-	{\huge\bfseries Assignment 1 \par}
-	\vspace{2cm}
-  Autores\par
-  {\Large\itshape André Pedrosa - 85098 \par}
-  {\Large\itshape João Abílio - TODO \par}
+\baselineskip18pt
 
-	\vfill
-  Regente \par
-  {\Large Sérgio Matos}
+\maketitle
 
-	\vfill
+\section{Introdução}
+Este relatório apresenta uma explicação do trabalho desenvolvido
+para o primeiro assignment da disciplina "Recuperação de Informação",
+explicando as decisões tomadas e o funcionamento da solução.
 
-  \today
-\end{titlepage}
+A linguagem de programação usada foi o Java e o programa desenvolvido
+tem como objetivo indexar uma coleção de documentos, criando um index
+invertido que faz a associação entre termos e os documentos nos quais e
+quantas vezes aparece-se.
 
-% TITLE PAGE CONTENT
+No fim serão apresentados resultados às questões colocadas no enunciado
+do assignment com o index resultante do programa alimentado pela coleção inteira.
 
-\setcounter{page}{2}
+Ao longo do relatório serão apresentados diagramas de classe que foram gerados
+através do IDEA IntelliJ, consequentemente em anexo é disponibilizada a
+legenda dos vários icons.
 
-\tableofcontents
+JAVA DOC
 
-\newpage
+\section{Decisões de implementação}
+Durante a implementação deste assignment não foi dada atenção a questões de memória,
+no entanto seguimos uma aproximação de streams em que o pedido de informação
+a esta informação pode ser condicionado segundo as limitações de memória.
 
-\section{Summary/Abstract}
-\section{Framework}
+Partes da nossa solução foram moduladas já a pensar nos futuros assignments,
+possibilitando a indexação ser feita a diferentes formatos de documentos e a informação
+presente do index poder variar.
 
+\section{Packages}
+
+\begin{figure}[H]
+  \center
+  \includegraphics[width=6cm]{packages_all.png}
+  \label{fig:packages_all}
+  \caption{Árvore de packages da solução}
+\end{figure}
+
+Nesta secção vai ser apresentada uma descrição para cada package presente na
+nossa solução apresentando as principais classes e os seus principais métodos. 
+
+\subsection{main}
+
+Neste package encontra-se a classe com o método main onde é feito o
+processamento dos argumentos e opções do programa e onde é definido o
+pipeline de processamento.
+
+\subsection{parsers}
+Neste package encontram-se as classes com a responsabilidade de fazer
+o processamento do corpus. Este processamento engloba percorrer a pasta do
+corpus, abrir os vários ficheiros, retirar os documentos dos ficheiros e
+recolher as as partes a indexar dos documentos.
+
+\subsubsection{parsers.corpus}
+\begin{figure}[h]
+  \center
+  \includegraphics[width=12cm]{packages_parsers_corpus.png}
+  \label{fig:packages_parsers_corpus}
+  \caption{Diagrama de classes do package \it parsers.corpus}
+\end{figure}
+
+Package onde é feita a iteração sobre os ficheiros a serem indexados, criando as classes
+necessárias para as classes seguintes poderem ler destes ficheiros.
+
+A classe CorpusReader implementa a interface Iterable o que permite receber os ficheiros
+a processar numa aproximação do tipo stream, como foi mencionado anteriormente. Quando
+é chamado o método {\it hasNext} do iterador da classe CorpusReader, a pasta do corpus
+é percurida recursivamente (usando uma stack para continuar a recursividade nas chamadas
+seguintes) até encontrar um ficheiro, o qual será retornado na próxima chamada do método
+{\it next}.
+
+Nesta altura é necessário escolher o FilePaser (mencionado mais à frente) adequado para
+o tipo de ficheiro para isso a classe CorupusReader tem uma interface ResolveFileParser
+que é responsável por fazer a associação entre o ficheiro e FileParser adequado. Para este
+assignment foi desenvolvido uma classe que escolhe o FileParser segundo a extensão do ficheiro.
+
+
+\subsubsection{parsers.files}
+\begin{figure}[h]
+  \center
+  \includegraphics[width=6cm]{packages_parsers_files.png}
+  \label{fig:packages_parsers_files}
+  \caption{Diagrama de classes do package \it parsers.files}
+\end{figure}
+
+Mais uma vez, para obtermos os documentos de cada ficheiro seguimos uma aproximação
+de streams, em que a classe FileParser implementa a interface Iterable. O método
+{\it hasNext} do iterador da classe FileParser lê linha a linha de um BufferedReader
+até que o método {\it handleLine} retorne uma referência para um objeto do tipo Document
+(do package parsers.documents) não nula, a qual será retornada na próxima chamada do
+método {\it next}.
+
+Para cada formato de ficheiro diferente deverá ser criada uma classe descendente da classe
+FileParser, implementando o método {\it handleLine} que retorna objetos Document quando
+as linhas lidas até ao momento completam um documento, e o método {\it inputStreamToBufferedReader},
+que transforma uma InputStream num BufferedReader permitindo inserir os necessários wrappers.
+Este último método permite abrir todos os ficheiros da mesma maneira e deixando para os FileParsers
+a responsabilidade de criar os necessários wrappers \(exemplo InputStream >
+GZIPInputStream > InputStreamReader > BufferedReader\).
+
+\subsubsection{parsers.documents}
+\begin{figure}[h]
+  \center
+  \includegraphics[width=6cm]{packages_parsers_documents.png}
+  \label{fig:packages_parsers_documents}
+  \caption{Diagrama de classes do package \it parsers.documents}
+\end{figure}
+
+O documento devolvido no método {\it handleLine} resulta do parsing do conteúdo do
+documento por um DocumentParser. O objetivo desta classe é retirar do conteúdo do documento
+a informação necessária para a indexação e criar um objeto Document associado. Este objeto
+tem um id que é incrementado a cada Document criado, não havendo ids repetidos, um identifier,
+que é utilizado para fazer a associação do id para o documento, e apresenta uma lista do
+conteúdo a ser tokenizado e posteriormente indexado.
+
+Para cada formato diferente de documentos deverá ser criada uma classe descendente da classe
+DocumentParser, implementando o método {\it parse} que percorre o conteúdo do documento
+lido e retira a informação a indexar. Isto é útil para casos por exemplo em que tenhamos um
+ficheiro comprimido (.gz) e outro em plain text, em que em ambos os documentos estão no
+mesmo formato, onde podemos usar o mesmo document parser para os dois casos.
+
+\subsection{tokenizer}
+\begin{figure}[h]
+  \center
+  \includegraphics[width=11cm]{packages_tokenizer.png}
+  \label{fig:packages_tokenizer}
+  \caption{Diagrama de classes do package \it tokenizer}
+\end{figure}
+
+Aqui encontram-se as classes que transformam partes dos documentos em termos (Tokenizers). 
+A classe principal, BaseTokenizer, é a classe base das diferentes implementações
+de tokenizers. As classes descendestes desta devem implementar o método {\it tokeizeString}
+on aplicam regras ao conteúdo recebido um conjunto de regras, devolvendo uma lista de termos.
+Para os tokenizers não existe a noção de documento, simplesmente aplicam regras a
+conteúdo recebido.
+
+\subsubsection{tokenizer.linguestic\_rules}
+TODO
+
+\subsection{indexer}
+\begin{figure}[h]
+  \center
+  \includegraphics[width=10cm]{packages_indexer.png}
+  \label{fig:packages_indexer}
+  \caption{Diagrama de classes do package \it indexer}
+\end{figure}
+
+Package com as classes que armazenam em memória o index invertido e
+a associação entre o id de um documento e o seu identifier.
+
+Aqui está presente a class BaseIndexer que serve como classe base para
+diferentes implementações de indexers. O index invertido é guardado numa
+estrutura do tipo mapa, permitindo ao programador definir a implementação
+desta interface, sendo por defeito usado um HashMap. A classe base referida
+é genérica o que possibilita que sejam criados diferentes indexers com a
+mesma estrutura, o que leva às classes descendentes a implementar o método
+{\it indexTerms} que guarda os termos de um documento no index invertido,
+com as estruturas especificas desse indexer.
+
+\subsubsection{indexer.structures}
+\begin{figure}[h]
+  \center
+  \includegraphics[width=10cm]{packages_indexer_structures.png}
+  \label{fig:packages_indexer_structures}
+  \caption{Diagrama de classes do package \it indexer.structures}
+\end{figure}
+
+Neste package estão os blocos que constroem o index invertido e que permitem
+a extensibilidade do mesmo. Tanto a chave do index invertido como o valor presente
+na lista associada descende do tipo Block que possui uma key (no caso do termo é o
+próprio term e nos documentos o seu id) pela qual é comparável entre si. Em casos
+casos em que seja necessário ter mais informação associada (contagens por exemplo)
+a classe BlockWithInfo, descendente de Block, permite isto mesmo.
+
+Para distinguir termos de documentos foram criadas as interfaces BaseTerm e BaseDocument,
+logo classes que guardam informação sobre termos devem descender do tipo Block e
+implementar a interface BaseTerm e classes que guardam informação sobre documentos
+devem descender do tipo Block e implementar a interface BaseDocument.
+
+\subsubsection{indexer.persisters}
+
+\section{Data Flow}
 %\begin{figure}[h]
 %  \center
-%  \includegraphics[width=12.5cm]{....png}
-%  \label{fig:...}
-%  \caption{...}
-%
+%  \includegraphics[width=10cm]{packages_indexer_structures.png}
+%  \label{fig:packages_indexer_structures}
+%  \caption{Diagrama de classes do package \it indexer.structures}
 %\end{figure}
 
-\bibliographystyle{ieeetr}
-\bibliography{references}
+\section{Resultados}
+\section{Anexos}
+
+\begin{figure}[h]
+  \center
+  \includegraphics[width=16cm]{arrow_legend.png}
+  \caption{Diagrama de classes do package \it indexer.structures}
+\end{figure}
+
+%\bibliographystyle{ieeetr}
+%\bibliography{references}
 
 \end{document}
