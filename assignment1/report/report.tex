@@ -27,7 +27,7 @@
 \title{Assignmnet 1}
 
 \author{
-    André Pedrosa [85098], João Abílio [8]\\
+    André Pedrosa [85098], João Abílio [84732]\\
     \\
     Recuperação de informação\\
     \normalsize{Departamento de Eletrónica, Telecomunicações e Informática}\\
@@ -55,13 +55,13 @@ invertido que faz a associação entre termos e os documentos nos quais e
 quantas vezes aparece-se.
 
 No fim serão apresentados resultados às questões colocadas no enunciado
-do assignment com o index resultante do programa alimentado pela coleção inteira.
+do assignment com o index resultante do programa alimentado pelos dois
+ficheiros da coleção.
 
-Ao longo do relatório serão apresentados diagramas de classe que foram gerados
-através do IDEA IntelliJ, consequentemente em anexo é disponibilizada a
-legenda dos vários icons.
-
-JAVA DOC
+Devido ao elevado número de classes criadas, o diagrama de classes vai ser
+dividido em vários que vão sendo apresentados ao longo do relatório. Estes
+diagramas foram gerados através do IDEA IntelliJ, consequentemente em anexo
+é disponibilizada a legenda da convenção usada.
 
 \section{Decisões de implementação}
 Durante a implementação deste assignment não foi dada atenção a questões de memória,
@@ -89,6 +89,9 @@ nossa solução apresentando as principais classes e os seus principais métodos
 Neste package encontra-se a classe com o método main onde é feito o
 processamento dos argumentos e opções do programa e onde é definido o
 pipeline de processamento.
+
+Tem ainda a classe responsável por consultar o index de maneira a
+obter os dados para responder às questões propostas no enunciado.
 
 \subsection{parsers}
 Neste package encontram-se as classes com a responsabilidade de fazer
@@ -140,7 +143,7 @@ FileParser, implementando o método {\it handleLine} que retorna objetos Documen
 as linhas lidas até ao momento completam um documento, e o método {\it inputStreamToBufferedReader},
 que transforma uma InputStream num BufferedReader permitindo inserir os necessários wrappers.
 Este último método permite abrir todos os ficheiros da mesma maneira e deixando para os FileParsers
-a responsabilidade de criar os necessários wrappers \(exemplo InputStream >
+a responsabilidade de criar os necessários wrappers. Exemplo: \(InputStream >
 GZIPInputStream > InputStreamReader > BufferedReader\).
 
 \subsubsection{parsers.documents}
@@ -180,12 +183,22 @@ Para os tokenizers não existe a noção de documento, simplesmente aplicam regr
 conteúdo recebido.
 
 \subsubsection{tokenizer.linguestic\_rules}
-TODO
-
-\subsection{indexer}
 \begin{figure}[h]
   \center
-  \includegraphics[width=10cm]{packages_indexer.png}
+  \includegraphics[width=10cm]{packages_tokenizer_linguistic_rules.png}
+  \label{fig:packages_indexer}
+  \caption{Diagrama de classes do package \it tokenizer.linguistic\_rules}
+\end{figure}
+
+De maneira a poder aplicar as mesmas regras em diferentes tokenizers
+foi criado uma interface comum que aplica regras linguísticas a termos.
+Estas regras linguísticas podem ser, por exemplo, fazer a exclusão se certos termos
+que cumprem um conjunto de regras (Stop Words) ou a transformação dos termos (Stemmer).
+
+\subsection{indexer}
+\begin{figure}[H]
+  \center
+  \includegraphics[width=8cm]{packages_indexer.png}
   \label{fig:packages_indexer}
   \caption{Diagrama de classes do package \it indexer}
 \end{figure}
@@ -223,6 +236,30 @@ implementar a interface BaseTerm e classes que guardam informação sobre docume
 devem descender do tipo Block e implementar a interface BaseDocument.
 
 \subsubsection{indexer.persisters}
+\begin{figure}[h]
+  \center
+  \includegraphics[width=16cm]{packages_indexer_persisters.png}
+  \label{fig:packages_indexer_structures}
+  \caption{Diagrama de classes do package \it indexer.persisters}
+\end{figure}
+
+Aqui encontram-se as classes responsáveis por implementar as diversas
+estratégias de guardar as estruturas internas da class BaseIndexer
+para disco. Como este indexer apresenta duas estruturas internas,
+damos a possibilidade de criar diferentes estratégias para cada
+estrutura, assumindo sempre que guardamos para o mesmo ficheiro as
+duas estruturas. A classe BaseIndexer, no método {\it persist},
+recebe um BasePersister que irá aplicar a estratégia para guardar
+ambas as estruturas.
+
+\begin{figure}[h]
+  \center
+  \includegraphics[width=16cm]{packages_indexer_persisters_impl.png}
+  \label{fig:packages_indexer_structures}
+    \caption{Diagrama de classes do package {\it indexer.persisters.inverted\_index}
+    à esquerda e do package \it indexer.persisters.document\_identification
+    à direita}
+\end{figure}
 
 \section{Data Flow}
 %\begin{figure}[h]
@@ -238,7 +275,11 @@ devem descender do tipo Block e implementar a interface BaseDocument.
 \begin{figure}[h]
   \center
   \includegraphics[width=16cm]{arrow_legend.png}
-  \caption{Diagrama de classes do package \it indexer.structures}
+\end{figure}
+
+\begin{figure}[h]
+  \center
+  \includegraphics[width=16cm]{icons_legend.png}
 \end{figure}
 
 %\bibliographystyle{ieeetr}
