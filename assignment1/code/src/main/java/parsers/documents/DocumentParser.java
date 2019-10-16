@@ -8,18 +8,16 @@ import java.util.List;
  * This class assumes that all documents will be indexed
  *  with the same indexer and tokenize with the same
  *  tokenizer.
- * Furthermore this class is in charge of calling
- *  the indexer's registerDocument method
- *  to associate an integer to a document identifier
  */
-public abstract class DocumentParser {
+public interface DocumentParser {
 
-    protected List<String> documentContent;
-
-    public DocumentParser(List<String> documentContent) {
-        this.documentContent = documentContent;
-    }
-
-    public abstract Document parse();
+    /**
+     * Parses document's content and extracts the information
+     *  to be tokenized
+     *
+     * @param documentContent to parse
+     * @return Document instance with the content to tokenize
+     */
+    Document parse(List<String> documentContent);
 
 }

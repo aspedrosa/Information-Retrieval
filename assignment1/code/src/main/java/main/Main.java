@@ -1,3 +1,4 @@
+package main;
 
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.impl.Arguments;
@@ -5,12 +6,14 @@ import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
 
-import parsers.CorpusReader;
+import parsers.corpus.CorpusReader;
+import parsers.corpus.ResolveByExtension;
 import parsers.documents.Document;
 import parsers.documents.TrecAsciiMedline2004DocParser;
 import parsers.files.FileParser;
 import parsers.files.TrecAsciiMedline2004FileParser;
 import indexer.FrequencyIndexer;
+import indexer.persisters.TermByLinePersister;
 import indexer.structures.DocumentWithFrequency;
 import indexer.structures.SimpleTerm;
 import tokenizer.AdvanvedTokenizer;
@@ -21,12 +24,38 @@ import java.io.BufferedOutputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.List;
 
+/**
+ * Class containing the main method
+ */
 public class Main {
 
+    /**
+     * Application starting point
+     *
+     * Execution flow:
+     * <ul>
+     *  <li>1. Parse program options and arguments</li>
+     *  <li>2. Instantiate both an indexer and tokenizer</li>
+     *  <li>3. Create a CorpusReader</li>
+     *  <li>4. Create the index while iterating over the corpus</li>
+     *  <li>5. Write the index to disk</li>
+     * </ul>
+     *
+     * Exit codes:
+     * <ul>
+     *  <li>0: program executed normally without errors</li>
+     *  <li>1: errors occurred related to program options or arguments</li>
+     *  <li>2: errors occurred related to IO</li>
+     * </ul>
+     *
+     * @param args program options and arguments
+     */
     public static void main(String[] args) {
         Namespace parsedArgs = parseProgramArguments(args);
 
@@ -45,41 +74,46 @@ public class Main {
             System.out.println("Created the Simple tokenizer");
         }
 
-        CorpusReader corpusReader = null;
+        // create an iterator over the corpus folder content
+        Iterator<Path> corpusFolder = null;
         try {
-            corpusReader = new CorpusReader(parsedArgs.getString("corpusFolder"));
+            corpusFolder = Files.list(Paths.get(parsedArgs.getString("corpusFolder"))).iterator();
         } catch (IOException e) {
+            System.err.println("ERROR listing the corpus folder\n");
             e.printStackTrace();
             System.exit(2);
         }
 
+        // define strategy to choose the right file parser for each file
+        ResolveByExtension fileParserResolver = new ResolveByExtension();
+        fileParserResolver.addParser("gz", TrecAsciiMedline2004FileParser.class);
+
+        CorpusReader corpusReader = new CorpusReader(corpusFolder, fileParserResolver);
+
+        // set relevant fields to parse from the TrecAsciiMedline2004's documents
         TrecAsciiMedline2004DocParser.addFieldToSave("TI");
         TrecAsciiMedline2004DocParser.addFieldToSave("PMID");
-        corpusReader.addParser("gz", TrecAsciiMedline2004FileParser.class);
 
         System.out.println("Started parsing the corpus");
         long begin = System.currentTimeMillis();
 
-        int count = 0;
         for (FileParser fileParser : corpusReader) {
             for (Document document : fileParser) {
-                /**if (count == 1000){
-                    break;
-                }
-                count++;**/
-                if (document == null) {
-                    // in case some error occurs while reading some file
-                    break;
-                }
-
                 List<String> terms = tokenizer.tokenizeDocument(document.getToTokenize());
 
                 int docId = document.getId();
                 indexer.registerDocument(docId, document.getIdentifier());
 
-                if (!terms.isEmpty()){
+                if (!terms.isEmpty()) {
                     indexer.indexTerms(docId, terms);
                 }
+            }
+
+            try {
+                fileParser.close();
+            } catch (IOException e) {
+                System.err.println("ERROR closing file " + fileParser.getFilename() + "\n");
+                e.printStackTrace();
             }
         }
 
@@ -87,50 +121,29 @@ public class Main {
 
         BufferedOutputStream output = null;
         try {
-            output = new BufferedOutputStream(new FileOutputStream(parsedArgs.getString("indexOutputFilename")));
+            output = new BufferedOutputStream(
+                new FileOutputStream(
+                    parsedArgs.getString("indexOutputFilename")
+                )
+            );
         } catch (FileNotFoundException e) {
-            System.err.println("Output file not found");
+            System.err.println("ERROR error while opening file to write the index\n");
             System.exit(2);
         }
 
         System.out.println("Started writing index to disk");
         begin = System.currentTimeMillis();
         try {
-            indexer.persist(output, (out, index) -> {
-                System.out.println("Sorting terms");
-
-                List<SimpleTerm> sortedTerms = new ArrayList<>(index.keySet());
-                sortedTerms.sort(SimpleTerm::compareTo);
-
-                System.out.println("Finished sorting terms");
-
-                System.out.println("Writing index to disk");
-
-                for (SimpleTerm term : sortedTerms) {
-                    out.write(term.getTerm().getBytes());
-                    out.write(',');
-
-                    Iterator<DocumentWithFrequency> it = index.get(term).iterator();
-                    while (it.hasNext()) {
-                        DocumentWithFrequency doc = it.next();
-
-                        String docStr = String.format(
-                            "%s:%d",
-                            doc.getDocId(),
-                            doc.getFrequency()
-                        );
-
-                        out.write(docStr.getBytes());
-
-                        if (it.hasNext()) {
-                            out.write(',');
-                        }
-                    }
-
-                    out.write('\n');
+            indexer.persist(output, new TermByLinePersister<SimpleTerm, DocumentWithFrequency>() {
+                @Override
+                public String handleDocument(DocumentWithFrequency document) {
+                    return String.format("%d:%d", document.getDocId(), document.getFrequency());
                 }
             });
+
+            output.close();
         } catch (IOException e) {
+            System.err.println("ERROR while writing the index to disk\n");
             e.printStackTrace();
             System.exit(2);
         }
