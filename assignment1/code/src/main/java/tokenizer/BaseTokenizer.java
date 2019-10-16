@@ -2,6 +2,7 @@ package tokenizer;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import tokenizer.linguistic_rules.LinguisticRule;
 
@@ -13,10 +14,12 @@ import tokenizer.linguistic_rules.LinguisticRule;
  */
 public abstract class BaseTokenizer {
 
+    protected static final Pattern WHITE_SPACES = Pattern.compile("\\s+");
+
     /**
      * Rules to be applied to the lines to be tokenized
      */
-    protected LinguisticRule ruleChain;
+    protected List<LinguisticRule> rules;
 
     /**
      * Default constructor
@@ -26,11 +29,11 @@ public abstract class BaseTokenizer {
     /**
      * Alternative constructor
      *
-     * @param ruleChain rules to be applied to the
+     * @param rules to be applied to the
      *  lines to be tokenized
      */
-    public BaseTokenizer(LinguisticRule ruleChain) {
-        this.ruleChain = ruleChain;
+    public BaseTokenizer(List<LinguisticRule> rules) {
+        this.rules = rules;
     }
 
     /**

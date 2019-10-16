@@ -1,20 +1,19 @@
 package tokenizer.linguistic_rules;
 
+import org.tartarus.snowball.ext.englishStemmer;
 import org.tartarus.snowball.SnowballStemmer;
 
 import java.util.List;
 
-public class SnowballStemmerRule extends LinguisticRule {
+public class SnowballStemmerRule implements LinguisticRule {
 
     private SnowballStemmer stemStrategy;
 
-    public SnowballStemmerRule(SnowballStemmer stemStrategy) {
-        super();
-        this.stemStrategy = stemStrategy;
+    public SnowballStemmerRule() {
+        this.stemStrategy = new englishStemmer();
     }
 
-    public SnowballStemmerRule(SnowballStemmer stemStrategy, LinguisticRule next) {
-        super(next);
+    public SnowballStemmerRule(SnowballStemmer stemStrategy) {
         this.stemStrategy = stemStrategy;
     }
 

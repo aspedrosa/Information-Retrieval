@@ -6,8 +6,6 @@ import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
 
-import org.tartarus.snowball.ext.englishStemmer;
-
 import parsers.corpus.CorpusReader;
 import parsers.corpus.ResolveByExtension;
 import parsers.documents.Document;
@@ -18,20 +16,28 @@ import indexer.FrequencyIndexer;
 import indexer.persisters.TermByLinePersister;
 import indexer.structures.DocumentWithFrequency;
 import indexer.structures.SimpleTerm;
-import tokenizer.AdvanvedTokenizer;
+import tokenizer.AdvancedTokenizer;
 import tokenizer.BaseTokenizer;
 import tokenizer.SimpleTokenizer;
 import tokenizer.linguistic_rules.LinguisticRule;
 import tokenizer.linguistic_rules.SnowballStemmerRule;
 import tokenizer.linguistic_rules.StopWordsRule;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.BufferedOutputStream;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.InputStreamReader;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.LinkedList;
+import java.util.Set;
 
 /**
  * Class containing the main method
@@ -69,18 +75,16 @@ public class Main {
 
         BaseTokenizer tokenizer;
         if (parsedArgs.getBoolean("useAdvancedTokenizer")) {
-            List<String> stopWords = readStopWordsFile(
+            Set<String> stopWords = readStopWordsFile(
                 parsedArgs.getString("stopWordsFile"),
                 parsedArgs.getInt("inputBufferSize")
             );
 
-            LinguisticRule ruleChain =
-                new SnowballStemmerRule(
-                    new englishStemmer(),
-                    new StopWordsRule(stopWords)
-            );
+            List<LinguisticRule> rules = new LinkedList<>();
+            rules.add(new SnowballStemmerRule());
+            rules.add(new StopWordsRule(stopWords));
 
-            tokenizer = new AdvanvedTokenizer(ruleChain);
+            tokenizer = new AdvancedTokenizer(rules);
 
             System.out.println("Created the Advanced tokenizer");
         }
@@ -168,7 +172,14 @@ public class Main {
         Assignment1Results.results(indexer.getInvertedIndex());
     }
 
-    private static List<String> readStopWordsFile(String filePath, Integer inputBufferSize) {
+    /**
+     * Reads a file containing stop words and builds a set with them
+     *
+     * @param filePath path to file containing the stop words
+     * @param inputBufferSize size for the buffer of the BufferedReader. Can be null
+     * @return stop words
+     */
+    private static Set<String> readStopWordsFile(String filePath, Integer inputBufferSize) {
         InputStreamReader input = null;
         try {
             input = new InputStreamReader(
@@ -189,7 +200,7 @@ public class Main {
             reader = new BufferedReader(input, inputBufferSize);
         }
 
-        List<String> stopWords = new ArrayList<>();
+        Set<String> stopWords = new HashSet<>();
         try {
             while (reader.ready()) {
                 stopWords.add(reader.readLine());
@@ -263,6 +274,12 @@ public class Main {
             System.err.println(
                 "ERROR Stop words file must be defined when" +
                 " using the advanced tokenizer");
+            System.exit(1);
+        }
+
+        Integer inputBufferSize = parsedArgs.getInt("inputBufferSize");
+        if (inputBufferSize != null && inputBufferSize <= 0) {
+            System.err.println("ERROR input buffer size must be greater than 0");
             System.exit(1);
         }
 

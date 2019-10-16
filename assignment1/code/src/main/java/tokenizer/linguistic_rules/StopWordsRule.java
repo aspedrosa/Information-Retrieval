@@ -1,31 +1,27 @@
 package tokenizer.linguistic_rules;
 
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
-public class StopWordsRule extends LinguisticRule {
+public class StopWordsRule implements LinguisticRule {
 
-    private List<String> stopWords;
+    private Set<String> stopWords;
 
-    public StopWordsRule(List<String> stopWords) {
-        super();
-        this.stopWords = stopWords;
-    }
-
-    public StopWordsRule(List<String> stopWords, LinguisticRule next) {
-        super(next);
+    public StopWordsRule(Set<String> stopWords) {
         this.stopWords = stopWords;
     }
 
     @Override
     public List<String> apply(List<String> terms) {
-        for (int i = terms.size() - 1; i >= 0; i--) {
-            String term = terms.get(i);
+        List<String> result = new LinkedList<>();
 
-            if (stopWords.contains(term)) {
-                terms.remove(i);
+        for (String term : terms) {
+            if (!stopWords.contains(term)) {
+                result.add(term);
             }
         }
 
-        return next.apply(terms);
+        return result;
     }
 }

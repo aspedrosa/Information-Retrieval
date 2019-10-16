@@ -3,18 +3,16 @@ package tokenizer;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * A simple implementation of a tokenizer
  */
 public class SimpleTokenizer extends BaseTokenizer {
 
-    /**
-     * Default constructor
-     */
-    public SimpleTokenizer() {
-        super();
-    }
+    private static final Matcher nonAlpha = Pattern.compile("[^\\p{Alpha}]").matcher("");
+    private static final Matcher lessThanThree = Pattern.compile("\\b\\p{Alpha}{1,2}\\b").matcher("");
 
     /**
      * <ul>
@@ -29,11 +27,10 @@ public class SimpleTokenizer extends BaseTokenizer {
      */
     @Override
     public List<String> tokenizeString(String toTokenize) {
-        String toSplit = toTokenize
-                .toLowerCase()
-                .replaceAll("[^\\p{Alpha}]", " ")
-                .replaceAll("\\b\\p{Alpha}{1,2}\\b", "")
-                .trim();
+         String lowerCase = toTokenize.toLowerCase();
+         String justAlpha = nonAlpha.reset(lowerCase).replaceAll(" ");
+         String moreThanTwo = lessThanThree.reset(justAlpha).replaceAll("");
+         String toSplit = moreThanTwo.trim();
 
         // in some cases the resulting string to split is an empty
         //  string. Doing a split will result in an array of
@@ -44,7 +41,7 @@ public class SimpleTokenizer extends BaseTokenizer {
         }
 
         return Arrays.asList(
-            toSplit.split("\\s+")
+            WHITE_SPACES.split(toSplit)
         );
     }
 
