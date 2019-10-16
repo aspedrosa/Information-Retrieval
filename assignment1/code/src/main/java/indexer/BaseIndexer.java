@@ -7,6 +7,7 @@ import indexer.structures.Block;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +26,14 @@ public abstract class BaseIndexer<T extends Block & BaseTerm, D extends Block & 
     protected Map<T, List<D>> invertedIndex;
 
     protected Map<Integer, String> documentIdentification;
+
+    public Map<T, List<D>> getInvertedIndex() {
+        return Collections.unmodifiableMap(invertedIndex);
+    }
+
+    public Map<Integer, String> getDocumentIdentification() {
+        return Collections.unmodifiableMap(documentIdentification);
+    }
 
     /**
      * Default constructor.
