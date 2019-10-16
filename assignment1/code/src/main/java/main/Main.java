@@ -6,6 +6,8 @@ import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
 
+import org.tartarus.snowball.ext.englishStemmer;
+
 import parsers.corpus.CorpusReader;
 import parsers.corpus.ResolveByExtension;
 import parsers.documents.Document;
@@ -19,14 +21,15 @@ import indexer.structures.SimpleTerm;
 import tokenizer.AdvanvedTokenizer;
 import tokenizer.BaseTokenizer;
 import tokenizer.SimpleTokenizer;
+import tokenizer.linguistic_rules.LinguisticRule;
+import tokenizer.linguistic_rules.SnowballStemmerRule;
+import tokenizer.linguistic_rules.StopWordsRule;
 
-import java.io.BufferedOutputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -66,7 +69,19 @@ public class Main {
 
         BaseTokenizer tokenizer;
         if (parsedArgs.getBoolean("useAdvancedTokenizer")) {
-            tokenizer = new AdvanvedTokenizer();
+            List<String> stopWords = readStopWordsFile(
+                parsedArgs.getString("stopWordsFile"),
+                parsedArgs.getInt("inputBufferSize")
+            );
+
+            LinguisticRule ruleChain =
+                new SnowballStemmerRule(
+                    new englishStemmer(),
+                    new StopWordsRule(stopWords)
+            );
+
+            tokenizer = new AdvanvedTokenizer(ruleChain);
+
             System.out.println("Created the Advanced tokenizer");
         }
         else {
@@ -153,6 +168,41 @@ public class Main {
         Assignment1Results.results(indexer.getInvertedIndex());
     }
 
+    private static List<String> readStopWordsFile(String filePath, Integer inputBufferSize) {
+        InputStreamReader input = null;
+        try {
+            input = new InputStreamReader(
+                new FileInputStream(filePath)
+            );
+        }
+        catch (FileNotFoundException e) {
+            System.err.println("ERROR while opening the stop words file");
+            e.printStackTrace();
+            System.exit(2);
+        }
+
+        BufferedReader reader;
+        if (inputBufferSize == null) {
+            reader = new BufferedReader(input);
+        }
+        else {
+            reader = new BufferedReader(input, inputBufferSize);
+        }
+
+        List<String> stopWords = new ArrayList<>();
+        try {
+            while (reader.ready()) {
+                stopWords.add(reader.readLine());
+            }
+        }
+        catch (IOException e) {
+            System.err.println("ERROR while reading from the stop words file\n");
+            System.exit(2);
+        }
+
+        return stopWords;
+    }
+
     /**
      * Defines program's arguments, options, help messages and
      *  parses the received arguments
@@ -187,6 +237,12 @@ public class Main {
                   " the simple one is used");
 
         argsParser
+            .addArgument("--stop-words-file")
+            .dest("stopWordsFile")
+            .action(Arguments.store())
+            .help("TODO");
+
+        argsParser
             .addArgument("--input-buffer-size")
             .dest("inputBufferSize")
             .type(Integer.class)
@@ -198,6 +254,15 @@ public class Main {
             parsedArgs = argsParser.parseArgs(args);
         } catch (ArgumentParserException e) {
             argsParser.handleError(e);
+            System.exit(1);
+        }
+
+        if (parsedArgs.getBoolean("useAdvancedTokenizer")
+            &&
+            parsedArgs.getString("stopWordsFile") == null) {
+            System.err.println(
+                "ERROR Stop words file must be defined when" +
+                " using the advanced tokenizer");
             System.exit(1);
         }
 
