@@ -42,9 +42,9 @@ public abstract class FileParser implements Iterable<Document>, Closeable {
      *  is &lt;= 0
      */
     public static void setReaderBufferSize(Integer readerBufferSize) {
-        if (readerBufferSize <= 0) {
-            throw new IllegalArgumentException("readerbuffersize must be > 0");
-        }
+        //if (readerBufferSize <= 0) {
+        //    throw new IllegalArgumentException("readerbuffersize must be > 0");
+        //}
         FileParser.readerBufferSize = readerBufferSize;
     }
 

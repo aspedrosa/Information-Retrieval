@@ -1,11 +1,8 @@
 package tokenizer;
 
 import tokenizer.linguistic_rules.LinguisticRule;
-import org.tartarus.snowball.*;
-import org.tartarus.snowball.ext.*;
-import tokenizer.linguistic_rules.StopWords;
-
-import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class AdvanvedTokenizer extends BaseTokenizer {
@@ -14,38 +11,30 @@ public class AdvanvedTokenizer extends BaseTokenizer {
         super();
     }
 
-    private SnowballStemmer stemmer = new englishStemmer();
 
-    private LinguisticRule rules = new StopWords();
-
-    public AdvanvedTokenizer(List<LinguisticRule> rules) {
-        super(rules);
+    public AdvanvedTokenizer(LinguisticRule ruleChain) {
+        super(ruleChain);
     }
 
     @Override
     public List<String> tokenizeString(String toTokenize) {
         // TODO
 
-        ArrayList<String> token = new ArrayList<>();
         String toSplit = toTokenize
                 .toLowerCase()
                 .replaceAll("[^\\p{Alpha}]", " ")
                 .replaceAll("\\b\\p{Alpha}{1,2}\\b", "")
                 .trim();
 
-        String[] example = toSplit.split("\\s+");
-
-        for (String ex: example) {
-            if (!this.rules.readStopWords().contains(ex)){
-                this.stemmer.setCurrent(ex);
-                if (this.stemmer.stem()){
-                    token.add(this.stemmer.getCurrent());
-                }
-            }
+        // in some cases the resulting string to split is an empty
+        //  string. Doing a split will result in an array of
+        //  one element (empty string). In this case return an
+        //  empty list
+        if (toSplit.equals("")) {
+            return Collections.emptyList();
         }
 
-        return token;
-        //return null;
+        return ruleChain.apply(Arrays.asList(toSplit.split("\\s+")));
     }
 
 }
