@@ -14,8 +14,9 @@ public class AdvancedTokenizer extends BaseTokenizer {
     public List<String> tokenizeString(String toTokenize) {
         String toSplit = toTokenize
                 .toLowerCase()
-                .replaceAll("[^\\p{Alpha}]", " ")
-                .replaceAll("\\b\\p{Alpha}{1,2}\\b", "")
+                .replaceAll("[[\\p{Punct}]&&[^-]]", " ")
+                .replaceAll("-", "")
+                //.replaceAll("\\p{Digit}{1}?","")
                 .trim();
 
         String[] example = WHITE_SPACES.split(toSplit);
