@@ -1,6 +1,6 @@
 package tokenizer.linguistic_rules;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -14,7 +14,7 @@ public class StopWordsRule implements LinguisticRule {
 
     @Override
     public List<String> apply(List<String> terms) {
-        List<String> result = new LinkedList<>();
+        List<String> result = new ArrayList<>(terms.size());
 
         for (String term : terms) {
             if (!stopWords.contains(term)) {

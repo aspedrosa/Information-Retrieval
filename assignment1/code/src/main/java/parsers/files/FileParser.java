@@ -139,8 +139,9 @@ public abstract class FileParser implements Iterable<Document>, Closeable {
             }
 
             try {
-                while (reader.ready()) {
-                    Document document = handleLine(reader.readLine());
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    Document document = handleLine(line);
 
                     // if the parsing of the current line
                     //  generated a document

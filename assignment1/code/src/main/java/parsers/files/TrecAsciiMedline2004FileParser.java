@@ -8,7 +8,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
 
@@ -38,7 +38,7 @@ public class TrecAsciiMedline2004FileParser extends FileParser {
      */
     public TrecAsciiMedline2004FileParser(InputStream input, String filename) throws IOException {
         super(input, filename);
-        documentContent = new LinkedList<>();
+        documentContent = new ArrayList<>(100);
         documentParser = new TrecAsciiMedline2004DocParser();
     }
 
