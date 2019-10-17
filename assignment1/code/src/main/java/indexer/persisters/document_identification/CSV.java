@@ -22,11 +22,14 @@ public class CSV implements DocumentIdentificationBasePersister {
     public void persist(OutputStream output, Map<Integer, String> documentIdentification) throws IOException {
 
         for (Map.Entry<Integer, String> entry : documentIdentification.entrySet()) {
-            output.write(entry.getKey().toString().getBytes());
-            output.write(',');
-            output.write(entry.getValue().getBytes());
+            byte[] documentIdBytes = entry.getKey().toString().getBytes();
+            output.write(documentIdBytes, 0, documentIdBytes.length);
+            output.write(new byte[] {','}, 0, 1);
 
-            output.write('\n');
+            byte[] identifierBytes = entry.getValue().getBytes();
+            output.write(identifierBytes, 0, identifierBytes.length);
+
+            output.write(new byte[] {'\n'}, 0, 1);
         }
     }
 

@@ -29,22 +29,23 @@ public abstract class CSV<T extends Block & BaseTerm,
      */
     @Override
     public final void handleTerm(OutputStream output, T term, List<D> documents) throws IOException {
-        output.write(term.getTerm().getBytes());
-        output.write(',');
+        byte[] termBytes = term.getTerm().getBytes();
+        output.write(termBytes, 0, termBytes.length);
+        output.write(new byte[] {','}, 0, 1);
 
         Iterator<D> it = documents.iterator();
         while (it.hasNext()) {
             D doc = it.next();
 
-            String documentString = handleDocument(doc);
+            byte[] documentBytes = handleDocument(doc).getBytes();
 
-            output.write(documentString.getBytes());
+            output.write(documentBytes, 0 , documentBytes.length);
 
             if (it.hasNext()) {
-                output.write(',');
+                output.write(new byte[] {','}, 0, 1);
             }
         }
 
-        output.write('\n');
+        output.write(new byte[] {'\n'}, 0, 1);
     }
 }

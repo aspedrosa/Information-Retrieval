@@ -27,7 +27,7 @@ public class IndexThenDocIdent<T extends Block&BaseTerm, D extends Block &BaseDo
     /**
      * Separator between the two structures
      */
-    private String separator;
+    private byte[] separator;
 
     /**
      * Strategy to store the document identification
@@ -48,7 +48,7 @@ public class IndexThenDocIdent<T extends Block&BaseTerm, D extends Block &BaseDo
     ) {
         this.invertedIndexPersister = invertedIndexPersister;
         this.documentIdentificationPersister = documentIdentificationPersister;
-        this.separator = separator;
+        this.separator = separator.getBytes();
     }
 
     /**
@@ -63,7 +63,7 @@ public class IndexThenDocIdent<T extends Block&BaseTerm, D extends Block &BaseDo
     public void persist(OutputStream output, Map<T, List<D>> invertedIndex, Map<Integer, String> documentIdentification) throws IOException {
         invertedIndexPersister.persist(output, invertedIndex);
 
-        output.write(separator.getBytes());
+        output.write(separator, 0, separator.length);
 
         documentIdentificationPersister.persist(output, documentIdentification);
     }
