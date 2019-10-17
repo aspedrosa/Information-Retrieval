@@ -75,12 +75,9 @@ public class Assignment1Results {
         System.out.println("\nTen terms with highest document frequency");
         invertedIndex.keySet().stream()
             .map((term) -> {
-                int termFrequency = 0;
-                for (DocumentWithFrequency doc : invertedIndex.get(term)) {
-                    termFrequency += doc.getFrequency();
-                }
+                int docFrequency = invertedIndex.get(term).size();
 
-                return new TermWithFrequency(term.getTerm(), termFrequency);
+                return new TermWithFrequency(term.getTerm(), docFrequency);
             })
             .sorted((term1, term2) -> {
                 if (term1.getFrequency() < term2.getFrequency()) {
