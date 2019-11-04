@@ -21,7 +21,7 @@ public class Document {
      * Current document id. Works as a
      *  serial primary key
      */
-    private static int CURRENT_ID = 1;
+    private static int CURRENT_ID = 0;
 
     /**
      * Unique identifier of the document to be associated

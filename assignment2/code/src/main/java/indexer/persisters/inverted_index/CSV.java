@@ -1,12 +1,10 @@
 package indexer.persisters.inverted_index;
 
+import indexer.persisters.Constants;
 import indexer.structures.BaseDocument;
 import indexer.structures.BaseTerm;
 import indexer.structures.Block;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -16,36 +14,42 @@ import java.util.List;
  * @param <D> type of the documents
  */
 public abstract class CSV<T extends Block & BaseTerm,
-                                          D extends Block & BaseDocument> extends ForEachTermPersister<T, D> {
+                                          D extends Block & BaseDocument> extends ForEachEntryPersister<T, D> {
 
     /**
-     * Writes the term and its posting list on a csv format (First column is the term
-     *  then the several documents).
+     * Main constructor
+     */
+    public CSV() {
+        super(Constants.COMMA, Constants.NEWLINE);
+    }
+
+    /**
+     * Function that dictates the output format of the
+     *   posting list.
      *
-     * @param output to where the index will be written
-     * @param term term object
-     * @param documents posting list associated to the term
-     * @throws IOException if some error occurs while writing the index to the stream
+     * @param documents documents to format
+     * @return a formatted string representing the posting list
      */
     @Override
-    public final void handleTerm(OutputStream output, T term, List<D> documents) throws IOException {
-        byte[] termBytes = term.getTerm().getBytes();
-        output.write(termBytes, 0, termBytes.length);
-        output.write(new byte[] {','}, 0, 1);
+    public String handleDocuments(List<D> documents) {
+        StringBuilder sb = new StringBuilder();
 
-        Iterator<D> it = documents.iterator();
-        while (it.hasNext()) {
-            D doc = it.next();
+        for (int i = 0; i < documents.size(); i++) {
+            sb.append(handleDocument(documents.get(i)));
 
-            byte[] documentBytes = handleDocument(doc).getBytes();
-
-            output.write(documentBytes, 0 , documentBytes.length);
-
-            if (it.hasNext()) {
-                output.write(new byte[] {','}, 0, 1);
+            if (i < documents.size() - 1) {
+                sb.append(",");
             }
         }
 
-        output.write(new byte[] {'\n'}, 0, 1);
+        return sb.toString();
     }
+
+    /**
+     * Method that defines the format of a single document
+     *
+     * @param document to format
+     * @return a formatted string representing the document
+     */
+    public abstract String handleDocument(D document);
 }

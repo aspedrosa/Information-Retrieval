@@ -30,6 +30,12 @@ public class TrecAsciiMedline2004FileParser extends FileParser {
     private DocumentParser documentParser;
 
     /**
+     * Size of the underlying array of the ArrayList to store
+     *  the document's content. Avoids grow() calls
+     */
+    private final static int documentContentArrInitSize = 100;
+
+    /**
      * Main constructor
      *
      * @param input stream to read from
@@ -38,7 +44,7 @@ public class TrecAsciiMedline2004FileParser extends FileParser {
      */
     public TrecAsciiMedline2004FileParser(InputStream input, String filename) throws IOException {
         super(input, filename);
-        documentContent = new ArrayList<>(100);
+        documentContent = new ArrayList<>(documentContentArrInitSize);
         documentParser = new TrecAsciiMedline2004DocParser();
     }
 
@@ -76,13 +82,13 @@ public class TrecAsciiMedline2004FileParser extends FileParser {
     @Override
     public Document handleLine(String line) {
         /*
-         * WARNING if the last line is not an empty line
+         * TODO if the last line is not an empty line
          *  the last document will not be indexed
          */
         // if the line is empty the previous document ended
         if (line.equals("")) {
             Document document = documentParser.parse(documentContent);
-            documentContent.clear();
+            documentContent = new ArrayList<>(100);
             return document;
         }
 

@@ -1,7 +1,7 @@
 package main;
 
-import indexer.persisters.IndexThenDocIdent;
-import indexer.structures.DocumentWithInfo;
+import main.pipelines.Pipeline;
+import main.pipelines.SPIMIPipeline;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.impl.Arguments;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
@@ -14,7 +14,9 @@ import parsers.documents.TrecAsciiMedline2004DocParser;
 import parsers.files.FileParser;
 import parsers.files.TrecAsciiMedline2004FileParser;
 import indexer.FrequencyIndexer;
+import indexer.structures.DocumentWithInfo;
 import indexer.structures.SimpleTerm;
+import indexer.persisters.inverted_index.CSV;
 import tokenizer.AdvancedTokenizer;
 import tokenizer.BaseTokenizer;
 import tokenizer.SimpleTokenizer;
@@ -25,8 +27,10 @@ import tokenizer.linguistic_rules.StopWordsRule;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.InputStreamReader;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -49,8 +53,7 @@ public class Main {
      *  <li>1. Parse program options and arguments</li>
      *  <li>2. Instantiate both an indexer and tokenizer</li>
      *  <li>3. Create a CorpusReader</li>
-     *  <li>4. Create the index while iterating over the corpus</li>
-     *  <li>5. Write the index to disk</li>
+     *  <li>4. Create and execute a pipeline</li>
      * </ul>
      *
      * Exit codes:
@@ -110,21 +113,39 @@ public class Main {
         TrecAsciiMedline2004DocParser.addFieldToSave("TI");
         TrecAsciiMedline2004DocParser.addFieldToSave("PMID");
 
-        Pipeline<SimpleTerm, DocumentWithInfo<Integer>> pipeline = new SimplePipeline<>(
+        ObjectOutputStream docRegistryOutput = null;
+        try {
+            docRegistryOutput = new ObjectOutputStream(
+                //new BufferedOutputStream(
+                    new FileOutputStream("documentRegistry.bin")
+                //)
+            );
+        } catch (IOException e) {
+            System.err.println("ERROR opening document registry output file\n");
+            e.printStackTrace();
+            System.exit(2);
+        }
+
+        Pipeline<SimpleTerm, DocumentWithInfo<Integer>> pipeline = new SPIMIPipeline<>(
             tokenizer,
             indexer,
             corpusReader,
             parsedArgs.getString("indexOutputFilename"),
-            new IndexThenDocIdent<>(
-                new indexer.persisters.inverted_index.CSV<SimpleTerm, DocumentWithInfo<Integer>>() {
-                    @Override
-                    public String handleDocument(DocumentWithInfo<Integer> document) {
-                        return String.format("%d:%d", document.getDocId(), document.getExtraInfo());
-                    }
-                },
-                new indexer.persisters.document_identification.CSV(),
-                "--\n"
-            )
+            docRegistryOutput,
+            parsedArgs.getFloat("maxLoadFactor"),
+            new CSV<SimpleTerm, DocumentWithInfo<Integer>>() {
+                @Override
+                public String handleTerm(SimpleTerm term) {
+                    return term.getTerm();
+                }
+
+                @Override
+                public String handleDocument(DocumentWithInfo<Integer> document) {
+                    return String.format("%d:%d", document.getDocId(), document.getExtraInfo());
+                }
+
+            },
+            parsedArgs.getInt("termsPerFinalIndexFile")
         );
 
         pipeline.execute();
@@ -222,10 +243,18 @@ public class Main {
         argsParser
             .addArgument("--max-load-factor")
             .dest("maxLoadFactor")
-            .type(Double.class)
+            .type(Float.class)
             .action(Arguments.store())
-            .help("TODO");
+            .setDefault(0.8f)
+            .help("TODO"); // TODO
 
+        argsParser
+            .addArgument("--terms-per-final-index-file")
+            .dest("termsPerFinalIndexFile")
+            .type(Integer.class)
+            .action(Arguments.store())
+            .setDefault(100000)
+            .help("TODO"); // TODO
 
         Namespace parsedArgs = null;
         try {

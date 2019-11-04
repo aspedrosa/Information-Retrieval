@@ -27,10 +27,15 @@ public class SimpleTokenizer extends BaseTokenizer {
      */
     @Override
     public List<String> tokenizeString(String toTokenize) {
-         String lowerCase = toTokenize.toLowerCase();
-         String justAlpha = nonAlpha.reset(lowerCase).replaceAll(" ");
-         String moreThanTwo = lessThanThree.reset(justAlpha).replaceAll("");
-         String toSplit = moreThanTwo.trim();
+         String toSplit =
+             lessThanThree  // 3. remove words with less than 3 characters
+             .reset(
+                 nonAlpha // 2. remove non alpha characters
+                 .reset(toTokenize.toLowerCase()) // 1. lower case
+                 .replaceAll(" ")
+             )
+             .replaceAll("")
+             .trim(); // 4. remove trailing spaces
 
         // in some cases the resulting string to split is an empty
         //  string. Doing a split will result in an array of

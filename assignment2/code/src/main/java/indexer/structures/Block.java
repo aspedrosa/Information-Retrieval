@@ -1,12 +1,14 @@
 package indexer.structures;
 
+import java.io.Serializable;
+
 /**
  * Base type used on the inverted index of the BaseIndexer class for
  *  both keys and values.
  *
  * @param <T> type of the key
  */
-public class Block<T extends Comparable<T>> implements Comparable<Block<T>> {
+public class Block<T extends Comparable<T>> implements Comparable<Block<T>>, Serializable {
 
     /**
      * Block indentifier

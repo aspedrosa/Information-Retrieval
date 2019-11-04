@@ -1,6 +1,6 @@
-package indexer.persisters;
+package indexer.persisters.indexer;
 
-import indexer.persisters.document_identification.DocumentIdentificationBasePersister;
+import indexer.persisters.document_registry.DocumentRegistryBasePersister;
 import indexer.persisters.inverted_index.InvertedIndexBasePersister;
 import indexer.structures.BaseDocument;
 import indexer.structures.BaseTerm;
@@ -12,12 +12,12 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Persists first the inverted index tha the document identification
+ * Persists first the inverted index tha the document registry
  *
  * @param <T> type of the terms
  * @param <D> type of the documents
  */
-public class IndexThenDocIdent<T extends Block&BaseTerm, D extends Block &BaseDocument> implements BasePersister<T, D> {
+public class IndexThenDocRegist<T extends Block&BaseTerm, D extends Block &BaseDocument> implements BasePersister<T, D> {
 
     /**
      * Strategy to store the inverted index
@@ -30,24 +30,24 @@ public class IndexThenDocIdent<T extends Block&BaseTerm, D extends Block &BaseDo
     private byte[] separator;
 
     /**
-     * Strategy to store the document identification
+     * Strategy to store the document registry
      */
-    private DocumentIdentificationBasePersister documentIdentificationPersister;
+    private DocumentRegistryBasePersister documentRegistryPersister;
 
     /**
      * Main constructor
      *
      * @param invertedIndexPersister Strategy to store the inverted index
-     * @param documentIdentificationPersister Strategy to store the document identification
+     * @param documentRegistryPersister Strategy to store the document registry
      * @param separator Separator between the two structures
      */
-    public IndexThenDocIdent(
+    public IndexThenDocRegist(
         InvertedIndexBasePersister<T, D> invertedIndexPersister,
-        DocumentIdentificationBasePersister documentIdentificationPersister,
+        DocumentRegistryBasePersister documentRegistryPersister,
         String separator
     ) {
         this.invertedIndexPersister = invertedIndexPersister;
-        this.documentIdentificationPersister = documentIdentificationPersister;
+        this.documentRegistryPersister = documentRegistryPersister;
         this.separator = separator.getBytes();
     }
 
@@ -56,16 +56,16 @@ public class IndexThenDocIdent<T extends Block&BaseTerm, D extends Block &BaseDo
      *
      * @param output the stream to write the strucutres
      * @param invertedIndex of the indexer
-     * @param documentIdentification of the indexer
+     * @param documentRegistry of the indexer
      * @throws IOException if some error occurs while writing
      */
     @Override
-    public void persist(OutputStream output, Map<T, List<D>> invertedIndex, Map<Integer, String> documentIdentification) throws IOException {
+    public void persist(OutputStream output, Map<T, List<D>> invertedIndex, Map<Integer, String> documentRegistry) throws IOException {
         invertedIndexPersister.persist(output, invertedIndex);
 
         output.write(separator, 0, separator.length);
 
-        documentIdentificationPersister.persist(output, documentIdentification);
+        documentRegistryPersister.persist(output, documentRegistry);
     }
 
 }

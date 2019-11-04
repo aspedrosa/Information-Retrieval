@@ -127,10 +127,10 @@ public final class CorpusReader implements Iterable<FileParser> {
                         }
                     } catch (IOException e) {
                         if (Files.isDirectory(path)) {
-                            System.err.println("ERROR listing directory " + path.toFile().getAbsolutePath() + "\n");
+                            System.err.println("WARNING couldn't list directory " + path.toFile().getAbsolutePath());
                         }
                         else {
-                            System.err.println("ERROR opening file " + path.toFile().getAbsolutePath() + "\n");
+                            System.err.println("WARNING couldn't open file " + path.toFile().getAbsolutePath());
                         }
                         e.printStackTrace();
                     }

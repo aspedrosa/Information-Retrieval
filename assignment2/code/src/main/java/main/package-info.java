@@ -1,5 +1,5 @@
 /**
- * Class with main method
+ * Class with main method and IR indexing pipelines
  */
 package main;
 

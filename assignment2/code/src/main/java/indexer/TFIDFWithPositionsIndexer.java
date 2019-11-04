@@ -1,12 +1,12 @@
 package indexer;
 
-import indexer.structures.aux_structs.TermWeightAndPositions;
+import indexer.structures.aux_structs.DocumentWeightAndPositions;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class TFIDFWithPositionsIndexer extends TFIDFIndexerBase<TermWeightAndPositions> {
+public class TFIDFWithPositionsIndexer extends TFIDFIndexerBase<DocumentWeightAndPositions> {
 
     private Map<String, List<Integer>> auxTermsPositions;
 

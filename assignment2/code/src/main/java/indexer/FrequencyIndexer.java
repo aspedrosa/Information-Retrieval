@@ -23,16 +23,11 @@ public class FrequencyIndexer extends BaseIndexer<SimpleTerm, DocumentWithInfo<I
     }
 
     /**
-     * Allows the user to choose the implementation class to be
-     * used by the inverted index
-     *
-     * @param invertedIndex implementation of the map interface
+     *  Inserts BaseDocument classes on the respective
+     *   posting lists of every term in the frequencies map.
+     * @param documentId id of the document to index
+     * @param frequencies frequencies for each term present on the document
      */
-    public FrequencyIndexer(Map<SimpleTerm, List<DocumentWithInfo<Integer>>> invertedIndex) {
-        super(invertedIndex);
-        dummyTerm = new SimpleTerm(null);
-    }
-
     protected void insertDocument(int documentId, Map<String, Integer> frequencies) {
         frequencies.forEach((term, count) -> {
             dummyTerm.setTerm(term);

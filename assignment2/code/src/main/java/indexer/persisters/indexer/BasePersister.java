@@ -1,4 +1,4 @@
-package indexer.persisters;
+package indexer.persisters.indexer;
 
 import indexer.structures.BaseDocument;
 import indexer.structures.BaseTerm;
@@ -23,9 +23,9 @@ public interface BasePersister<T extends Block & BaseTerm, D extends Block & Bas
      *
      * @param output the stream to write the strucutres
      * @param invertedIndex of the indexer
-     * @param documentIdentification of the indexer
+     * @param documentRegistry of the indexer
      * @throws IOException if some error occurs while writing
      */
-    void persist(OutputStream output, Map<T, List<D>> invertedIndex, Map<Integer, String> documentIdentification ) throws IOException;
+    void persist(OutputStream output, Map<T, List<D>> invertedIndex, Map<Integer, String> documentRegistry ) throws IOException;
 
 }

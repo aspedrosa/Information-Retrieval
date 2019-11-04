@@ -1,13 +1,9 @@
 package indexer;
 
-import indexer.persisters.BasePersister;
 import indexer.structures.BaseDocument;
 import indexer.structures.BaseTerm;
 import indexer.structures.Block;
-import indexer.structures.DocumentWithInfo;
 
-import java.io.IOException;
-import java.io.OutputStream;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -31,7 +27,7 @@ public abstract class BaseIndexer<T extends Block & BaseTerm, D extends Block & 
     /**
      * Associates a document id to an identifier of a document
      */
-    protected Map<Integer, String> documentIdentification;
+    protected Map<Integer, String> documentRegistry;
 
     /**
      * Used to improve some performance. Since blocks' hashcode()
@@ -53,10 +49,10 @@ public abstract class BaseIndexer<T extends Block & BaseTerm, D extends Block & 
     /**
      * Getter for the documentIdentification
      *
-     * @return an unmodifiable version of the documentIdentification
+     * @return an unmodifiable version of the documentRegistry
      */
-    public Map<Integer, String> getDocumentIdentification() {
-        return Collections.unmodifiableMap(documentIdentification);
+    public Map<Integer, String> getDocumentRegistry() {
+        return Collections.unmodifiableMap(documentRegistry);
     }
 
     /**
@@ -65,31 +61,7 @@ public abstract class BaseIndexer<T extends Block & BaseTerm, D extends Block & 
      */
     public BaseIndexer() {
         invertedIndex = new HashMap<>();
-        documentIdentification = new HashMap<>();
-    }
-
-    /**
-     * Alternative constructor.
-     * Allows the user to choose the implementation of
-     *  the interface Map to be used
-     *
-     * @param invertedIndex a Map implementation
-     */
-    public BaseIndexer(Map<T, List<D>> invertedIndex) {
-        this.invertedIndex = invertedIndex;
-        this.documentIdentification = new HashMap<>();
-    }
-
-    /**
-     * Method called to save the index
-     *
-     * @param output Stream to write the index
-     * @param persister class that handles how to write the internal structures to the stream (Persisting Strategy).
-     * @throws IOException if some error occurs while writing the
-     *  index to the stream
-     */
-    public final void persist(OutputStream output, BasePersister<T, D> persister) throws IOException {
-        persister.persist(output, invertedIndex, documentIdentification);
+        documentRegistry = new HashMap<>();
     }
 
     /**
@@ -99,7 +71,7 @@ public abstract class BaseIndexer<T extends Block & BaseTerm, D extends Block & 
      * @param identifier of the document (probably found on the content of the document)
      */
     public final void registerDocument(int documentId, String identifier) {
-        documentIdentification.put(documentId, identifier);
+        documentRegistry.put(documentId, identifier);
     }
 
     /**
@@ -126,5 +98,22 @@ public abstract class BaseIndexer<T extends Block & BaseTerm, D extends Block & 
         insertDocument(documentId, frequencies);
     }
 
+    /**
+     *  Inserts BaseDocument classes on the respective
+     *   posting lists of every term in the frequencies map.
+     *  Method called after calculating the frequencies for each term
+     *   for the document with the document id.
+     * @param documentId id of the document to index
+     * @param frequencies frequencies for each term present on the document
+     */
     protected abstract void insertDocument(int documentId, Map<String, Integer> frequencies);
+
+    /**
+     * Resets the indexer internal structures. Used mainly to get same memory back.
+     */
+    public void clear() {
+        invertedIndex = new HashMap<>();
+        documentRegistry = new HashMap<>();
+    }
+
 }

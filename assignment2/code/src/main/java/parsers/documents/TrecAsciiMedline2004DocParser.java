@@ -39,6 +39,12 @@ public class TrecAsciiMedline2004DocParser implements DocumentParser {
      * @param documentContent to parse
      * @return Document object with the content to tokenize
      */
+
+    /**
+     * Field to avoid some extra String Objects initialization
+     */
+    private final static String ID_FIELD = "PMID";
+
     @Override
     public Document parse(List<String> documentContent) {
         // name of a field
@@ -52,8 +58,7 @@ public class TrecAsciiMedline2004DocParser implements DocumentParser {
             // if the current lines starts with a space
             //  then append to the field's content the current line
             if (line.charAt(0) == ' ') {
-                content.append(' ');
-                content.append(line.trim());
+                content.append(line);
             }
             else {
                 // if it doesn't start with a space
@@ -63,7 +68,7 @@ public class TrecAsciiMedline2004DocParser implements DocumentParser {
                 if (fieldsToSave.contains(label)) {
                     // if the label of the field is PMID save it's content to
                     //  the identifier
-                    if (label.equals("PMID")) {
+                    if (label.equals(ID_FIELD)) {
                         document.setIdentifier(content.toString());
                     }
                     else {
@@ -74,7 +79,7 @@ public class TrecAsciiMedline2004DocParser implements DocumentParser {
 
                 // start the parsing of a new field
                 label = line.substring(0, 4).trim();
-                content = new StringBuilder(line.substring(6).trim());
+                content = new StringBuilder(line.substring(6));
             }
         }
 
@@ -83,7 +88,7 @@ public class TrecAsciiMedline2004DocParser implements DocumentParser {
             document.addStringToTokenize(content.toString());
         }
         // or is the identifier
-        else if (label.endsWith("PMID")) {
+        else if (label.endsWith(ID_FIELD)) {
             document.setIdentifier(content.toString());
         }
 
