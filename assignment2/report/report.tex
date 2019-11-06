@@ -46,7 +46,7 @@
 
 \section{Introdução}
 Este relatório apresenta uma explicação do trabalho desenvolvido
-para o primeiro assignment da disciplina "Recuperação de Informação",
+para o segundo assignment da disciplina "Recuperação de Informação",
 explicando as decisões tomadas e o funcionamento da solução.
 
 A linguagem de programação usada foi o Java e o programa desenvolvido
@@ -64,7 +64,7 @@ diagramas foram gerados através do IDEA IntelliJ, consequentemente em anexo
 
 \section{Decisões de implementação}
 Durante a implementação deste assignment não foi dada atenção a questões de memória,
-no entanto seguimos uma aproximação de iterativa em que o pedido de informação
+no entanto seguimos uma aproximação iterativa em que o pedido de informação
 (conteúdo de ficheiros a ler, documentos, ...) pode ser condicionado segundo as
 limitações de memória em implementações futuras facilmente.
 
@@ -115,76 +115,20 @@ pipeline de processamento.
 Tem ainda a classe responsável por consultar o index de maneira a
 obter os dados para responder às questões propostas no enunciado.
 
+\subsubsection{pipelines}
+
 \subsection{parsers}
-Neste package encontram-se as classes com a responsabilidade de fazer
-o processamento do corpus. Este processamento engloba percorrer a pasta do
-corpus, abrir os vários ficheiros, retirar os documentos dos ficheiros e
-recolher as as partes a indexar dos documentos.
-
-\subsubsection{parsers.corpus}
-\begin{figure}[h]
+\begin{figure}[H]
   \center
-  \includegraphics[width=12cm]{packages_parsers_corpus.png}
-  \caption{Diagrama de classes do package \it parsers.corpus}
+  \includegraphics[width=12cm]{packages_parsers}
+  \caption{Diagrama de classes do package \it parsers}
 \end{figure}
 
-Package onde é feita a iteração sobre os ficheiros a serem indexados, criando as classes
-necessárias para as classes seguintes poderem ler destes ficheiros.
-
-A classe CorpusReader implementa a interface Iterable o que permite receber os ficheiros
-a processar numa aproximação do tipo iterativa, como foi mencionado anteriormente. Quando
-é chamado o método {\it hasNext} do iterador da classe CorpusReader, a pasta do corpus
-é percurida recursivamente (usando uma stack para continuar a recursividade nas chamadas
-seguintes) até encontrar um ficheiro, o qual será retornado na próxima chamada do método
-{\it next}.
-
-Nesta altura é necessário escolher o FilePaser (mencionado mais à frente) adequado para
-o tipo de ficheiro para isso a classe CorupusReader tem uma interface ResolveFileParser
-que é responsável por fazer a associação entre o ficheiro e FileParser adequado. Para este
-assignment foi desenvolvido uma classe que escolhe o FileParser segundo a extensão do ficheiro.
-
-
-\subsubsection{parsers.files}
-\begin{figure}[h]
-  \center
-  \includegraphics[width=6cm]{packages_parsers_files.png}
-  \caption{Diagrama de classes do package \it parsers.files}
-\end{figure}
-
-Mais uma vez, para obtermos os documentos de cada ficheiro seguimos uma aproximação
-iterativa, em que a classe FileParser implementa a interface Iterable. O método
-{\it hasNext} do iterador da classe FileParser lê linha a linha de um BufferedReader
-até que o método {\it handleLine} retorne uma referência para um objeto do tipo Document
-(do package parsers.documents) não nula, a qual será retornada na próxima chamada do
-método {\it next}.
-
-Para cada formato de ficheiro diferente deverá ser criada uma classe descendente da classe
-FileParser, implementando o método {\it handleLine} que retorna objetos Document quando
-as linhas lidas até ao momento completam um documento, e o método {\it inputStreamToBufferedReader},
-que transforma uma InputStream num BufferedReader permitindo inserir os necessários wrappers.
-Este último método permite abrir todos os ficheiros da mesma maneira e deixando para os FileParsers
-a responsabilidade de criar os necessários wrappers. Exemplo: \(InputStream >
-GZIPInputStream > InputStreamReader > BufferedReader\).
-
-\subsubsection{parsers.documents}
-\begin{figure}[h]
-  \center
-  \includegraphics[width=6cm]{packages_parsers_documents.png}
-  \caption{Diagrama de classes do package \it parsers.documents}
-\end{figure}
-
-O documento devolvido no método {\it handleLine} resulta do parsing do conteúdo do
-documento por um DocumentParser. O objetivo desta classe é retirar do conteúdo do documento
-a informação necessária para a indexação e criar um objeto Document associado. Este objeto
-tem um id que é incrementado a cada Document criado, não havendo ids repetidos, um identifier,
-que é utilizado para fazer a associação do id para ao documento, e apresenta uma lista do
-conteúdo a ser tokenizado e posteriormente indexado.
-
-Para cada formato diferente de documentos deverá ser criada uma classe descendente da classe
-DocumentParser, implementando o método {\it parse} que percorre o conteúdo do documento
-lido e retira a informação a tokenizar. Isto é útil para casos por exemplo em que tenhamos um
-ficheiro comprimido (.gz) e outro em plain text, em que em ambos os documentos estão no
-mesmo formato, permitindo-nos usar o mesmo document parser para os dois casos.
+Este package não sofreu grandes alterações relativamente à entrega
+anterior, apenas foi alterado algumas mensagens de erro, os id dos
+documentos agora começa em 0 e algumas operações sobre strings
+obtidas dos ficheiros do corpus /forem removidas, como .trim(), para
+tentar reduzir o número de instanciações da class String.
 
 \subsection{tokenizer}
 \begin{figure}[h]
@@ -193,31 +137,14 @@ mesmo formato, permitindo-nos usar o mesmo document parser para os dois casos.
   \caption{Diagrama de classes do package \it tokenizer}
 \end{figure}
 
-Aqui encontram-se as classes que transformam partes dos documentos em termos (Tokenizers). 
-A classe principal, BaseTokenizer, é a classe base das diferentes implementações
-de tokenizers. As classes descendestes desta devem implementar o método {\it tokenizeString}
-on aplicam regras ao conteúdo recebido, devolvendo uma lista de termos.
-Para os tokenizers não existe a noção de documento, simplesmente aplicam regras a
-conteúdo recebido.
-
-No nosso tokenizer avançado mantemos as palavras com hífen, eliminamos termos
-com apenas dígitos e com menos de 3 caracteres e aplicamos ainda stemming e uma
-filtragem de stop words.
-
-\subsubsection{tokenizer.linguestic\_rules}
-\begin{figure}[h]
-  \center
-  \includegraphics[width=10cm]{packages_tokenizer_linguistic_rules.png}
-  \caption{Diagrama de classes do package \it tokenizer.linguistic\_rules}
-\end{figure}
-
-De maneira a poder aplicar as mesmas regras em diferentes tokenizers
-foi criado uma interface comum que aplica regras linguísticas a termos.
-Estas regras linguísticas podem ser, por exemplo, fazer a exclusão se certos termos
-que cumprem um conjunto de regras (Stop Words) ou a transformação dos termos (Stemmer).
+Este package também não sofreu grandes alterações relativamente à
+entrega anterior, apenas foi alterado a maneira como o conteúdos dos
+campos são transformado em tokens. Essa operação foi agrupada numa
+única string variável do tipo String para novamente para tentar
+evitar o número de instanciações da classe String
 
 \subsection{indexer}
-\begin{figure}[H]
+\begin{figure}[h]
   \center
   \includegraphics[width=8cm]{packages_indexer.png}
   \caption{Diagrama de classes do package \it indexer}
