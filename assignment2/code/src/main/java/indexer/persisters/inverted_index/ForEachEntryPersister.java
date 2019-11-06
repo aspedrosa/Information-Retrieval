@@ -67,8 +67,7 @@ public abstract class ForEachEntryPersister <T extends Block & BaseTerm,
 
             output.write(termDocumentSeparator, 0 , termDocumentSeparator.length);
 
-            byte[] documents = handleDocuments(invertedIndex.get(sortedTerms.get(i))).getBytes();
-            output.write(documents, 0, documents.length);
+            handleDocuments(output, invertedIndex.get(sortedTerms.get(i)));
 
             if (i != sortedTerms.size() - 1) {
                 output.write(entryTerminator, 0, entryTerminator.length);
@@ -86,11 +85,16 @@ public abstract class ForEachEntryPersister <T extends Block & BaseTerm,
 
     /**
      * Function that dictates the output format of the
-     *   posting list.
+     *   posting list and is in charge of writing it
+     *   to the stream.
+     * This functions doesn't followed the same approach as the
+     *  handle term because posting lists can be large, so
+     *  creating a string of those posting lists could lead to
+     *  out of memory exceptions.
      *
+     * @param output where to write the list of documents
      * @param documents documents to format
-     * @return a formatted string representing the posting list
      */
-    public abstract String handleDocuments(List<D> documents);
+    public abstract void handleDocuments(OutputStream output, List<D> documents) throws IOException;
 
 }

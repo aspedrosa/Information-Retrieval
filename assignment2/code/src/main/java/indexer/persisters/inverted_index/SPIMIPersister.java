@@ -40,7 +40,9 @@ public class SPIMIPersister<T extends Block & BaseTerm, D extends Block &BaseDoc
             T term = it.next();
 
             objOutput.writeObject(term);
+            objOutput.reset();
             objOutput.writeObject(invertedIndex.get(term));
+            objOutput.reset();
         }
 
         objOutput.writeObject(null);

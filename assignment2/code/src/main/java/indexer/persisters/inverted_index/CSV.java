@@ -5,6 +5,8 @@ import indexer.structures.BaseDocument;
 import indexer.structures.BaseTerm;
 import indexer.structures.Block;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.List;
 
 /**
@@ -25,24 +27,23 @@ public abstract class CSV<T extends Block & BaseTerm,
 
     /**
      * Function that dictates the output format of the
-     *   posting list.
+     *   posting list and is in charge of writing it
+     *   to the stream.
      *
+     * @param output where to write the list of documents
      * @param documents documents to format
-     * @return a formatted string representing the posting list
      */
     @Override
-    public String handleDocuments(List<D> documents) {
-        StringBuilder sb = new StringBuilder();
-
+    public void handleDocuments(OutputStream output, List<D> documents) throws IOException {
         for (int i = 0; i < documents.size(); i++) {
-            sb.append(handleDocument(documents.get(i)));
+            byte[] document = handleDocument(documents.get(i)).getBytes();
+
+            output.write(document, 0, document.length);
 
             if (i < documents.size() - 1) {
-                sb.append(",");
+                output.write(Constants.COMMA, 0, Constants.COMMA.length);
             }
         }
-
-        return sb.toString();
     }
 
     /**

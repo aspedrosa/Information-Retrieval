@@ -63,8 +63,8 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
     private ObjectOutputStream docRegistryOutput;
 
     /**
-     * Variable to know if on the indexing step wrote
-     *  any temporary file to disk
+     * Variable to know if on the indexing step the
+     *  program wrote any temporary file to disk
      */
     private boolean wroteToDisk;
 
@@ -152,17 +152,6 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
                 wroteToDisk = true;
             }
         }
-
-        if (wroteToDisk) {
-            persistInvertedIndex(spimiPersister, "indexingTmpFile" + tmpFilesCounter++);
-            persistDocumentRegistry();
-
-            indexer.clear();
-            System.gc();
-        }
-        else {
-            persistDocumentRegistry();
-        }
     }
 
     /**
@@ -172,6 +161,8 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
      */
     @Override
     public void persistIndex() {
+        persistDocumentRegistry();
+
         try {
             docRegistryOutput.close();
         } catch (IOException e) {
@@ -180,8 +171,15 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
             System.exit(2);
         }
 
-        if (!wroteToDisk) {
-            persistInvertedIndex(forEachEntryPersister, indexOutputFileName + "_");
+        if (wroteToDisk) {
+            persistInvertedIndex(spimiPersister, "indexingTmpFile" + tmpFilesCounter++);
+
+            indexer.clear();
+            System.gc();
+        }
+        else {
+            persistInvertedIndex(forEachEntryPersister, indexOutputFileName);
+
             return;
         }
 
@@ -349,6 +347,7 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
             .forEach(entry -> {
                 try {
                     docRegistryOutput.writeObject(entry.getValue());
+                    docRegistryOutput.reset();
                 } catch (IOException e) {
                     System.err.println("ERROR while writing to document registry file");
                     e.printStackTrace();
@@ -491,23 +490,21 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
             // code similar to the method persist of the class ForEachEntryPersister
             //  only different is the collection that is being iterated
             for (SPIMIPersister.Entry<T, D> entry : entriesToWrite) {
+                if (currentTermCountPerIndexOutputFile == termCountPerIndexOutputFile) {
+                    currentTermCountPerIndexOutputFile = 0;
+                    openFinalIndexOutput(
+                        entry.getTerm().getTerm()
+                    );
+                }
+
                 byte[] termBytes = forEachEntryPersister.handleTerm(entry.getTerm()).getBytes();
                 finalIndexOutput.write(termBytes, 0 , termBytes.length);
 
                 finalIndexOutput.write(Constants.COMMA, 0, Constants.COMMA.length);
 
-                byte[] documentsBytes = forEachEntryPersister.handleDocuments(entry.getDocuments()).getBytes();
-                finalIndexOutput.write(documentsBytes, 0 , documentsBytes.length);
+                forEachEntryPersister.handleDocuments(finalIndexOutput, entry.getDocuments());
 
-                //if (entry != entriesToWrite.get(entriesToWrite.size() - 1)) {
-                //}
-
-                if (++currentTermCountPerIndexOutputFile == termCountPerIndexOutputFile) {
-                    openFinalIndexOutput(
-                        entry.getTerm().getTerm()
-                    );
-                }
-                else {
+                if (++currentTermCountPerIndexOutputFile != termCountPerIndexOutputFile) {
                     finalIndexOutput.write(Constants.NEWLINE, 0, Constants.NEWLINE.length);
                 }
             }
