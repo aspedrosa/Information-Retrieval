@@ -98,6 +98,7 @@ public abstract class ForEachEntryPersister <T extends Block & BaseTerm,
      *
      * @param output where to write the list of documents
      * @param documents documents to format
+     * @throws IOException if some error occurs while writing the documents to the stream
      */
     public abstract void handleDocuments(OutputStream output, List<D> documents) throws IOException;
 
