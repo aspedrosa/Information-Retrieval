@@ -5,6 +5,14 @@ RI_assignment*
 snowball_stopwords_EN.txt
 84732_85098.zip
 
+## Indexing files
+finalIndex*
+indexingTmpFile*
+documentRegistry.bin
+
+## VisualVm
+.attach_pid*
+
 ## Maven
 target/
 pom.xml.tag
