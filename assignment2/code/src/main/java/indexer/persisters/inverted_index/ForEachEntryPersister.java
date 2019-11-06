@@ -1,5 +1,6 @@
 package indexer.persisters.inverted_index;
 
+import indexer.persisters.PostIndexingActions;
 import indexer.structures.BaseDocument;
 import indexer.structures.BaseTerm;
 import indexer.structures.Block;
@@ -48,10 +49,11 @@ public abstract class ForEachEntryPersister <T extends Block & BaseTerm,
      *
      * @param output to where the index will be written
      * @param invertedIndex the inverted index held by the indexer
+     * @param postIndexingActions actions to apply to the inverted index before persisting
      * @throws IOException if some errors occur while writing the index to the stream
      */
     @Override
-    public final void persist(OutputStream output, Map<T, List<D>> invertedIndex) throws IOException {
+    public final void persist(OutputStream output, Map<T, List<D>> invertedIndex, PostIndexingActions<T, D> postIndexingActions) throws IOException {
         System.out.println("Sorting terms");
 
         List<T> sortedTerms = new ArrayList<>(invertedIndex.keySet());
@@ -62,6 +64,8 @@ public abstract class ForEachEntryPersister <T extends Block & BaseTerm,
         System.out.println("Writing index to disk");
 
         for (int i = 0; i < sortedTerms.size(); i++) {
+            postIndexingActions.postIndexingActions(sortedTerms.get(i), invertedIndex.get(sortedTerms.get(i)));
+
             byte[] term = handleTerm(sortedTerms.get(i)).getBytes();
             output.write(term, 0, term.length);
 

@@ -324,7 +324,7 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
                 new FileOutputStream(filename)
             );
 
-            persister.persist(output, indexer.getInvertedIndex());
+            persister.persist(output, indexer.getInvertedIndex(), indexer);
 
             output.close();
         } catch (IOException e) {
@@ -496,6 +496,8 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
                         entry.getTerm().getTerm()
                     );
                 }
+
+                indexer.postIndexingActions(entry.getTerm(), entry.getDocuments());
 
                 byte[] termBytes = forEachEntryPersister.handleTerm(entry.getTerm()).getBytes();
                 finalIndexOutput.write(termBytes, 0 , termBytes.length);

@@ -1,5 +1,6 @@
 package indexer.persisters.inverted_index;
 
+import indexer.persisters.PostIndexingActions;
 import indexer.structures.BaseDocument;
 import indexer.structures.BaseTerm;
 import indexer.structures.Block;
@@ -28,10 +29,12 @@ public class SPIMIPersister<T extends Block & BaseTerm, D extends Block &BaseDoc
      *
      * @param output to where the index will be written
      * @param invertedIndex of the indexer
-     * @throws IOException if some occours while writing to the output stream
+     * @param postIndexingActions since the files written by this persister are temporary, this field is ignored,
+     *  thus can be null
+     * @throws IOException if some error occurs while writing to the output stream
      */
     @Override
-    public void persist(OutputStream output, Map<T, List<D>> invertedIndex) throws IOException {
+    public void persist(OutputStream output, Map<T, List<D>> invertedIndex, PostIndexingActions<T, D> postIndexingActions) throws IOException {
         ObjectOutputStream objOutput = new ObjectOutputStream(output);
 
         Iterator<T> it = invertedIndex.keySet().stream().sorted((t1, t2) -> t1.compareTo(t2)).iterator();
@@ -111,10 +114,10 @@ public class SPIMIPersister<T extends Block & BaseTerm, D extends Block &BaseDoc
             }
 
             /**
-             * Gets the next entry on the iterator. This iterator assumes a
-             *  hasNext() call with return value true and only then a call of next()
+             * Gets the next entry on the iterator. <b>This iterator assumes a
+             *  hasNext() call with return value true and only then a call of next()</b>
              *
-             * @return
+             * @return the next entry on the temporary file
              * @throws NoSuchElementException if the current entry to return is null
              */
             @Override

@@ -1,6 +1,6 @@
 package indexer.persisters.inverted_index;
 
-import indexer.BaseIndexer;
+import indexer.persisters.PostIndexingActions;
 import indexer.structures.BaseDocument;
 import indexer.structures.BaseTerm;
 import indexer.structures.Block;
@@ -25,8 +25,9 @@ public interface InvertedIndexBasePersister<T extends Block & BaseTerm, D extend
      *
      * @param output to where the index will be written
      * @param invertedIndex of the indexer
+     * @param postIndexingActions actions to apply to the inverted index before persisting
      * @throws IOException if some error occurs while writing the index to the stream
      */
-    void persist(OutputStream output, Map<T, List<D>> invertedIndex) throws IOException;
+    void persist(OutputStream output, Map<T, List<D>> invertedIndex, PostIndexingActions<T, D> postIndexingActions) throws IOException;
 
 }

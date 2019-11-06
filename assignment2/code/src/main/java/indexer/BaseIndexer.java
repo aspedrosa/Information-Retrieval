@@ -1,5 +1,6 @@
 package indexer;
 
+import indexer.persisters.PostIndexingActions;
 import indexer.structures.BaseDocument;
 import indexer.structures.BaseTerm;
 import indexer.structures.Block;
@@ -15,7 +16,7 @@ import java.util.Map;
  * @param <T> Type of the terms
  * @param <D> Type of the documents
  */
-public abstract class BaseIndexer<T extends Block & BaseTerm, D extends Block & BaseDocument> {
+public abstract class BaseIndexer<T extends Block & BaseTerm, D extends Block & BaseDocument> implements PostIndexingActions<T, D> {
 
     /**
      * The main data structure of the index.
@@ -114,6 +115,20 @@ public abstract class BaseIndexer<T extends Block & BaseTerm, D extends Block & 
     public void clear() {
         invertedIndex = new HashMap<>();
         documentRegistry = new HashMap<>();
+    }
+
+    /**
+     * Operates over a entry of the inverted index after
+     *  all the indexing steps and before persisting. This is
+     *  used for types of indexers that need to do some
+     *  type of calculations after the indexing process.
+     *  i.e. normalise document weights
+     *
+     * @param term of the entry to operate
+     * @param postingList of the entry to operate
+     */
+    public void postIndexingActions(T term, List<D> postingList) {
+
     }
 
 }

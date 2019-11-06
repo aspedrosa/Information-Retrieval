@@ -92,7 +92,7 @@ public class SimplePipeline<T extends Block&BaseTerm, D extends Block &BaseDocum
         }
 
         try {
-            persister.persist(output, indexer.getInvertedIndex(), indexer.getDocumentRegistry());
+            persister.persist(output, indexer.getInvertedIndex(), indexer, indexer.getDocumentRegistry());
 
             output.close();
         } catch (IOException e) {
