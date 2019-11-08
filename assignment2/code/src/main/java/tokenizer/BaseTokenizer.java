@@ -1,5 +1,6 @@
 package tokenizer;
 
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -24,7 +25,9 @@ public abstract class BaseTokenizer {
     /**
      * Default constructor
      */
-    public BaseTokenizer() {}
+    public BaseTokenizer() {
+        rules = Collections.emptyList();
+    }
 
     /**
      * Alternative constructor
@@ -54,7 +57,7 @@ public abstract class BaseTokenizer {
     }
 
     /**
-     * Tokenizes a line of the document's content
+     * Tokenizes some document's content
      *
      * @param toTokenize line to tokenize
      * @return list of terms

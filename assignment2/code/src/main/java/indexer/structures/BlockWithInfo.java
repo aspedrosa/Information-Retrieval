@@ -15,10 +15,20 @@ public class BlockWithInfo<K extends Comparable<K>, V> extends Block<K> {
      */
     protected V extraInfo;
 
+    /**
+     * Getter for the extraInfo field
+     *
+     * @return the block extra info
+     */
     public V getExtraInfo() {
         return extraInfo;
     }
 
+    /**
+     * Setter for the extraInfo field
+     *
+     * @param extraInfo the new extra info
+     */
     public void setExtraInfo(V extraInfo) {
         this.extraInfo = extraInfo;
     }

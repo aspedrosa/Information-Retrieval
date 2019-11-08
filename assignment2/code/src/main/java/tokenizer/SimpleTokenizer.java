@@ -1,5 +1,7 @@
 package tokenizer;
 
+import tokenizer.linguistic_rules.LinguisticRule;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -11,8 +13,32 @@ import java.util.regex.Pattern;
  */
 public class SimpleTokenizer extends BaseTokenizer {
 
+    /**
+     * Matcher to remove all non alphabetic characters
+     */
     private static final Matcher nonAlpha = Pattern.compile("[^\\p{Alpha}]").matcher("");
+
+    /**
+     * Matcher to remove all words with less than three words
+     */
     private static final Matcher lessThanThree = Pattern.compile("\\b\\p{Alpha}{1,2}\\b").matcher("");
+
+    /**
+     * Default constructor
+     */
+    public SimpleTokenizer() {
+        super();
+    }
+
+    /**
+     * Allows the definition of rules to apply
+     *  to terms
+     *
+     * @param rules to apply to the terms
+     */
+    public SimpleTokenizer(List<LinguisticRule> rules) {
+        super(rules);
+    }
 
     /**
      * <ul>
@@ -45,9 +71,13 @@ public class SimpleTokenizer extends BaseTokenizer {
             return Collections.emptyList();
         }
 
-        return Arrays.asList(
-            WHITE_SPACES.split(toSplit)
-        );
+        List<String> terms = Arrays.asList(WHITE_SPACES.split(toSplit));
+
+        for (LinguisticRule rule : rules) {
+            terms = rule.apply(terms);
+        }
+
+        return terms;
     }
 
 }

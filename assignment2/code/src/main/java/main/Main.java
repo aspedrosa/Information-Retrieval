@@ -1,29 +1,31 @@
 package main;
 
-import main.pipelines.Pipeline;
-import main.pipelines.SPIMIPipeline;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.impl.Arguments;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
 
+import indexer.FrequencyIndexer;
+import indexer.persisters.inverted_index.FrequencyPersister;
+import indexer.structures.DocumentWithInfo;
+import indexer.structures.SimpleTerm;
+import main.pipelines.Pipeline;
+import main.pipelines.SPIMIPipeline;
 import parsers.corpus.CorpusReader;
 import parsers.corpus.ResolveByExtension;
 import parsers.documents.TrecAsciiMedline2004DocParser;
 import parsers.files.FileParser;
 import parsers.files.TrecAsciiMedline2004FileParser;
-import indexer.FrequencyIndexer;
-import indexer.structures.DocumentWithInfo;
-import indexer.structures.SimpleTerm;
-import indexer.persisters.inverted_index.CSV;
 import tokenizer.AdvancedTokenizer;
 import tokenizer.BaseTokenizer;
 import tokenizer.SimpleTokenizer;
 import tokenizer.linguistic_rules.LinguisticRule;
+import tokenizer.linguistic_rules.MinLengthRule;
 import tokenizer.linguistic_rules.SnowballStemmerRule;
 import tokenizer.linguistic_rules.StopWordsRule;
 
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -81,8 +83,9 @@ public class Main {
             );
 
             List<LinguisticRule> rules = new ArrayList<>(2);
-            rules.add(new SnowballStemmerRule());
             rules.add(new StopWordsRule(stopWords));
+            rules.add(new SnowballStemmerRule());
+            rules.add(new MinLengthRule(3));
 
             tokenizer = new AdvancedTokenizer(rules);
 
@@ -116,9 +119,9 @@ public class Main {
         ObjectOutputStream docRegistryOutput = null;
         try {
             docRegistryOutput = new ObjectOutputStream(
-                //new BufferedOutputStream(
+                new BufferedOutputStream(
                     new FileOutputStream("documentRegistry.bin")
-                //)
+                )
             );
         } catch (IOException e) {
             System.err.println("ERROR opening document registry output file\n");
@@ -133,18 +136,7 @@ public class Main {
             parsedArgs.getString("indexOutputFilename"),
             docRegistryOutput,
             parsedArgs.getFloat("maxLoadFactor"),
-            new CSV<SimpleTerm, DocumentWithInfo<Integer>>() {
-                @Override
-                public String handleTerm(SimpleTerm term) {
-                    return term.getTerm();
-                }
-
-                @Override
-                public String handleDocument(DocumentWithInfo<Integer> document) {
-                    return String.format("%d:%d", document.getDocId(), document.getExtraInfo());
-                }
-
-            },
+            new FrequencyPersister(),
             parsedArgs.getInt("termsPerFinalIndexFile")
         );
 
@@ -246,7 +238,9 @@ public class Main {
             .type(Float.class)
             .action(Arguments.store())
             .setDefault(0.8f)
-            .help("TODO"); // TODO
+            .help("defines the maximum load factor that the memory can reach while" +
+                " indexing or merging during the SPIMI algorithm. " +
+                "Should be a number between 0 and 1. Default 0.80");
 
         argsParser
             .addArgument("--terms-per-final-index-file")
@@ -254,7 +248,7 @@ public class Main {
             .type(Integer.class)
             .action(Arguments.store())
             .setDefault(100000)
-            .help("TODO"); // TODO
+            .help("number of terms per a final index file. Default 100000");
 
         Namespace parsedArgs = null;
         try {
@@ -276,6 +270,20 @@ public class Main {
         Integer inputBufferSize = parsedArgs.getInt("inputBufferSize");
         if (inputBufferSize != null && inputBufferSize <= 0) {
             System.err.println("ERROR input buffer size must be greater than 0");
+            System.exit(1);
+        }
+
+        Float maxLoadFactor = parsedArgs.getFloat("maxLoadFactor");
+        if (maxLoadFactor != null && (maxLoadFactor < 0 || maxLoadFactor > 1)) {
+            System.err.println("ERROR maximum load factor should be a floating point" +
+                " between 0 and 1");
+            System.exit(1);
+        }
+
+        Integer termsPerFinalIndexFile = parsedArgs.getInt("termsPerFinalIndexFile");
+        if (termsPerFinalIndexFile != null && termsPerFinalIndexFile < 0) {
+            System.err.println("ERROR maximum load factor should be an integer greater" +
+                " than 0");
             System.exit(1);
         }
 

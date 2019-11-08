@@ -1,8 +1,11 @@
 package indexer.structures;
 
-import indexer.structures.BaseTerm;
-import indexer.structures.BlockWithInfo;
-
+/**
+ * Term that stores some extra info associated
+ *  with it
+ *
+ * @param <V> type of the extra info
+ */
 public class TermWithInfo<V> extends BlockWithInfo<String, V> implements BaseTerm {
 
     /**
@@ -15,6 +18,11 @@ public class TermWithInfo<V> extends BlockWithInfo<String, V> implements BaseTer
         super(key, extraInfo);
     }
 
+    /**
+     * Getter of the term
+     *
+     * @return the term
+     */
     @Override
     public String getTerm() {
         return key;

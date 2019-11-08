@@ -1,5 +1,6 @@
 package indexer.persisters.inverted_index;
 
+import com.sun.istack.internal.Nullable;
 import indexer.persisters.PostIndexingActions;
 import indexer.structures.BaseDocument;
 import indexer.structures.BaseTerm;
@@ -21,7 +22,7 @@ import java.util.NoSuchElementException;
  * @param <T> type of the terms
  * @param <D> type of the documents
  */
-public class SPIMIPersister<T extends Block & BaseTerm, D extends Block &BaseDocument> implements InvertedIndexBasePersister<T, D> {
+public class SPIMIPersister<T extends Block & BaseTerm, D extends Block &BaseDocument> extends InvertedIndexBasePersister<T, D> {
 
     /**
      * Persists the terms objects followed by the postings lists in binary. To
@@ -34,7 +35,7 @@ public class SPIMIPersister<T extends Block & BaseTerm, D extends Block &BaseDoc
      * @throws IOException if some error occurs while writing to the output stream
      */
     @Override
-    public void persist(OutputStream output, Map<T, List<D>> invertedIndex, PostIndexingActions<T, D> postIndexingActions) throws IOException {
+    public void persist(OutputStream output, Map<T, List<D>> invertedIndex, @Nullable PostIndexingActions<T, D> postIndexingActions) throws IOException {
         ObjectOutputStream objOutput = new ObjectOutputStream(output);
 
         Iterator<T> it = invertedIndex.keySet().stream().sorted((t1, t2) -> t1.compareTo(t2)).iterator();
@@ -42,9 +43,7 @@ public class SPIMIPersister<T extends Block & BaseTerm, D extends Block &BaseDoc
         while (it.hasNext()) {
             T term = it.next();
 
-            objOutput.writeObject(term);
-            objOutput.reset();
-            objOutput.writeObject(invertedIndex.get(term));
+            objOutput.writeObject(new Entry<>(term, invertedIndex.get(term)));
             objOutput.reset();
         }
 
@@ -55,14 +54,23 @@ public class SPIMIPersister<T extends Block & BaseTerm, D extends Block &BaseDoc
      * Gives an iterator that returns entries from the temporary files stored
      *
      * @param input to read from
-     * @param indexingTmpFileCount which temporary file will be read. Used for error messages
+     * @param filename of the file from which will be read. Used for error messages
      * @return and iterator to retrieve inverted index's entries
      * @throws IOException if some error occurs while reading from the stream
      */
-    public Iterator<Entry<T, D>> load(InputStream input, int indexingTmpFileCount) throws IOException {
-        ObjectInputStream objInput = new ObjectInputStream(
-            input
-        );
+    public Iterator<Entry<T, D>> load(InputStream input, String filename) {
+        ObjectInputStream tmp = null;
+        try {
+            tmp = new ObjectInputStream(
+                input
+            );
+        } catch (IOException e) {
+            System.err.println("ERROR while opening temporary indexing file " + filename);
+            e.printStackTrace();
+            System.exit(2);
+        }
+
+        ObjectInputStream objInput = tmp;
 
         return new Iterator<Entry<T, D>>() {
 
@@ -90,25 +98,21 @@ public class SPIMIPersister<T extends Block & BaseTerm, D extends Block &BaseDoc
                     return false;
                 }
 
-                T term = null;
-                List<D> documents = null;
+                Entry<T, D> entry = null;
                 try {
-                    term = (T) objInput.readObject();
-                    if (term == null) {
+                    entry = (Entry<T, D>) objInput.readObject();
+                    if (entry == null) {
                         closed = true;
                         objInput.close();
                         return false;
                     }
-
-                    documents = (List<D>) objInput.readObject();
                 } catch (IOException | ClassNotFoundException e) {
-                    System.err.println("ERROR while reading from temporary index file" +
-                        "indexingTmpFile" + indexingTmpFileCount);
+                    System.err.println("ERROR while reading from temporary index file " + filename);
                     e.printStackTrace();
                     System.exit(2);
                 }
 
-                currentEntry = new Entry<>(term, documents);
+                currentEntry = entry;
 
                 return true;
             }
@@ -133,56 +137,6 @@ public class SPIMIPersister<T extends Block & BaseTerm, D extends Block &BaseDoc
                 return toReturn;
             }
         };
-    }
-
-    /**
-     * Structure to group term and its posting list to be used
-     *  on the SPIMIPipeline
-     *
-     * @param <T> type of the term
-     * @param <D> type of the documents
-     */
-    public static class Entry<T extends Block & BaseTerm, D extends Block &BaseDocument> {
-
-        /**
-         * Internal term
-         */
-        private T term;
-
-        /**
-         * Posting list
-         */
-        private List<D> documents;
-
-        /**
-         * Main constructor
-         *
-         * @param term the entry term
-         * @param documents posting list of the term
-         */
-        public Entry(T term, List<D> documents) {
-            this.term = term;
-            this.documents = documents;
-        }
-
-        /**
-         * Getter of the term field
-         *
-         * @return the entry's term
-         */
-        public T getTerm() {
-            return term;
-        }
-
-        /**
-         * Getter of the documetns fields
-         *
-         * @return the posting list of the term
-         */
-        public List<D> getDocuments() {
-            return documents;
-        }
-
     }
 
 }

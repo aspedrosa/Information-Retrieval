@@ -2,6 +2,7 @@ package main.pipelines;
 
 import indexer.BaseIndexer;
 import indexer.persisters.Constants;
+import indexer.persisters.PostIndexingActions;
 import indexer.persisters.inverted_index.ForEachEntryPersister;
 import indexer.persisters.inverted_index.InvertedIndexBasePersister;
 import indexer.persisters.inverted_index.SPIMIPersister;
@@ -40,6 +41,8 @@ import java.util.Map;
  * @param <D> type of the documents
  */
 public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDocument> extends Pipeline<T, D> {
+
+    private static final String indexingTmpFilePrefix = "indexingTmpFile";
 
     /**
      * Maximum memory load factor
@@ -172,7 +175,7 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
         }
 
         if (wroteToDisk) {
-            persistInvertedIndex(spimiPersister, "indexingTmpFile" + tmpFilesCounter++);
+            persistInvertedIndex(spimiPersister, indexingTmpFilePrefix + tmpFilesCounter++);
 
             indexer.clear();
             System.gc();
@@ -184,16 +187,17 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
         }
 
         // iterators used to retrieve the entries from each temporary file
-        List<Iterator<SPIMIPersister.Entry<T, D>>> tmpFilesReaders = new ArrayList<>();
+        List<Iterator<InvertedIndexBasePersister.Entry<T, D>>> tmpFilesReaders = new ArrayList<>();
 
         for (int i = 0; i < tmpFilesCounter; i++) {
             try {
+                String filename = indexingTmpFilePrefix + i;
                 tmpFilesReaders.add(
                     spimiPersister.load(
                         new BufferedInputStream(
-                            new FileInputStream("indexingTmpFile" + i)
+                            new FileInputStream(filename)
                         ),
-                        i
+                        filename
                     )
                 );
             } catch (IOException e) {
@@ -205,7 +209,7 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
         }
 
         // holds the top entry for each temporary file being merged
-        List<SPIMIPersister.Entry<T, D>> tmpFilesTopEntries = new ArrayList<>(tmpFilesReaders .size());
+        List<InvertedIndexBasePersister.Entry<T, D>> tmpFilesTopEntries = new ArrayList<>(tmpFilesReaders .size());
         // to do a match between top entry and each temporary file their
         //  size must be the same. for that null are inserted
         for (int i = 0; i < tmpFilesReaders.size(); i++) {
@@ -214,14 +218,14 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
 
         // stores the entries for the commons terms lexicographically lower across
         //  all top entries of the different temporary files
-        List<SPIMIPersister.Entry<T, D>> lowerCommonTerms = new ArrayList<>();
+        List<InvertedIndexBasePersister.Entry<T, D>> lowerCommonTerms = new ArrayList<>();
 
         // used to know from which files the lowerCommonTerms were retrieved
         List<Integer> retrievedTmpFilesTopEntriesIdx = new ArrayList<>();
 
         // stores the terms and their posting lists to later write and
         //  the memory load factor retches the maximum
-        List<SPIMIPersister.Entry<T, D>> entriesToWrite = new ArrayList<>();
+        List<InvertedIndexBasePersister.Entry<T, D>> entriesToWrite = new ArrayList<>();
 
         // while there is entries on the temporary files to retrieve
         while (hasTmpFilesToRead(tmpFilesReaders, tmpFilesTopEntries)) {
@@ -229,7 +233,7 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
             // calculates which entries has the terms lexicographically lower across
             //  all top entries of the different temporary files
             for (int i = 0; i < tmpFilesTopEntries.size(); i++) {
-                SPIMIPersister.Entry<T, D> entry = tmpFilesTopEntries.get(i);
+                InvertedIndexBasePersister.Entry<T, D> entry = tmpFilesTopEntries.get(i);
 
                 // if lowerCommonTerms is empty then is the first to be retrieved
                 if (lowerCommonTerms.isEmpty()) {
@@ -263,7 +267,7 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
             {T term = lowerCommonTerms.get(0).getTerm();
             List<D> docs = mergePostingLists(lowerCommonTerms);
 
-            entriesToWrite.add(new SPIMIPersister.Entry<>(term, docs));}
+            entriesToWrite.add(new InvertedIndexBasePersister.Entry<>(term, docs));}
 
             if (maxLoadFactorExceeded()) {
                 writeFinalIndexToDisk(entriesToWrite);
@@ -312,10 +316,11 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
 
     /**
      * Auxiliary function to reduce code duplication that stores the inverted index
-     *  with a given persister.
+     *  with the persister received on the constructor.
      *
      * @param persister that handles the output format
      * @param filename of the file to create file
+     *  persisting
      */
     private void persistInvertedIndex(InvertedIndexBasePersister<T, D> persister, String filename) {
         BufferedOutputStream output;
@@ -364,11 +369,11 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
      * @param tmpFilesTopEntry holds the top entry for each temporary file being merged
      * @return true if exists at least one file to read from more entries
      */
-    private boolean hasTmpFilesToRead(List<Iterator<SPIMIPersister.Entry<T, D>>> tmpFiles,
-                                      List<SPIMIPersister.Entry<T, D>> tmpFilesTopEntry) {
+    private boolean hasTmpFilesToRead(List<Iterator<InvertedIndexBasePersister.Entry<T, D>>> tmpFiles,
+                                      List<InvertedIndexBasePersister.Entry<T, D>> tmpFilesTopEntry) {
         // for each temporary file
         for (int i = tmpFiles.size() - 1; i >= 0; i--) {
-            Iterator<SPIMIPersister.Entry<T, D>> it = tmpFiles.get(i);
+            Iterator<InvertedIndexBasePersister.Entry<T, D>> it = tmpFiles.get(i);
 
             // if the top entry stored is null it means that it was used
             //  or its the first time read
@@ -380,7 +385,7 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
                     // and remove its stop on the top entries list
                     tmpFilesTopEntry.remove(i);
                 }
-                else { // else read on more entry
+                else { // else read one more entry
                     tmpFilesTopEntry.set(i, it.next());
                 }
             }
@@ -397,7 +402,7 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
      *  all top entries of the different temporary files
      * @return a posting list with all the posting lists merged
      */
-    private List<D> mergePostingLists(List<SPIMIPersister.Entry<T, D>> lowerCommonTerms) {
+    private List<D> mergePostingLists(List<InvertedIndexBasePersister.Entry<T, D>> lowerCommonTerms) {
         List<D> mergedPostingList = new ArrayList<>();
 
         // merge posting lists
@@ -446,9 +451,9 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
             //  if they are lower than the first on the other posting lists
             //  that had documents with higher document ids
             int furtherIdxWhereDocIdStillLowest = 0;
-            aa:             for (int i = 1; i < postListWithLowestDocId.size(); furtherIdxWhereDocIdStillLowest = i++) {
+aa:         for (int i = 1; i < postListWithLowestDocId.size(); furtherIdxWhereDocIdStillLowest = i++) {
                 // for each posting list to merge
-                for (SPIMIPersister.Entry<T, D> entry : lowerCommonTerms) {
+                for (InvertedIndexBasePersister.Entry<T, D> entry : lowerCommonTerms) {
 
                     if (entry.getDocuments() != postListWithLowestDocId) {
                         if (entry.getDocuments().get(0).getDocId() < lowestDocId) {
@@ -479,7 +484,7 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
      *
      * @param entriesToWrite the entries to persist
      */
-    private void writeFinalIndexToDisk(List<SPIMIPersister.Entry<T, D>> entriesToWrite) {
+    private void writeFinalIndexToDisk(List<InvertedIndexBasePersister.Entry<T, D>> entriesToWrite) {
         if (finalIndexOutput == null) {
             openFinalIndexOutput(
                 entriesToWrite.get(0).getTerm().getTerm()
@@ -489,7 +494,7 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
         try {
             // code similar to the method persist of the class ForEachEntryPersister
             //  only different is the collection that is being iterated
-            for (SPIMIPersister.Entry<T, D> entry : entriesToWrite) {
+            for (InvertedIndexBasePersister.Entry<T, D> entry : entriesToWrite) {
                 if (currentTermCountPerIndexOutputFile == termCountPerIndexOutputFile) {
                     currentTermCountPerIndexOutputFile = 0;
                     openFinalIndexOutput(
@@ -502,12 +507,20 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
                 byte[] termBytes = forEachEntryPersister.handleTerm(entry.getTerm()).getBytes();
                 finalIndexOutput.write(termBytes, 0 , termBytes.length);
 
-                finalIndexOutput.write(Constants.COMMA, 0, Constants.COMMA.length);
+                finalIndexOutput.write(
+                    forEachEntryPersister.getTermDocumentSeparator(),
+                    0,
+                    forEachEntryPersister.getTermDocumentSeparator().length
+                );
 
                 forEachEntryPersister.handleDocuments(finalIndexOutput, entry.getDocuments());
 
                 if (++currentTermCountPerIndexOutputFile != termCountPerIndexOutputFile) {
-                    finalIndexOutput.write(Constants.NEWLINE, 0, Constants.NEWLINE.length);
+                    finalIndexOutput.write(
+                        forEachEntryPersister.getEntryTerminator(),
+                        0,
+                        forEachEntryPersister.getEntryTerminator().length
+                    );
                 }
             }
         } catch (IOException e) {

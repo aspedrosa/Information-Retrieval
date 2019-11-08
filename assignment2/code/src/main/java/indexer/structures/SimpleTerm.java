@@ -1,9 +1,6 @@
 
 package indexer.structures;
 
-import indexer.structures.BaseTerm;
-import indexer.structures.Block;
-
 /**
  * Implementation of a term to be stored on the inverted index
  * This implementation holds only the term

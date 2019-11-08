@@ -9,14 +9,43 @@ import java.util.regex.Pattern;
 
 public class AdvancedTokenizer extends BaseTokenizer {
 
+    /**
+     * Matcher to remove all punctuation except slashes. Insert spaces
+     */
     private final static Matcher punctWithoutSome = Pattern.compile("[[\\p{Punct}]&&[^-]]").matcher("");
+
+    /**
+     * Matcher of slash to remove it from words, to make it an entire word
+     */
     private final static Matcher slash = Pattern.compile("-").matcher("");
+
+    /**
+     * Matcher to remove all terms with just digits
+     */
     private final static Matcher allNum = Pattern.compile("^\\p{Digit}+$").matcher("");
 
+    /**
+     * Default constructor. With no linguistic rules
+     */
+    public AdvancedTokenizer() {
+        super();
+    }
+
+    /**
+     * Constructor to define linguistic rules to apply
+     *
+     * @param rules to apply to the terms
+     */
     public AdvancedTokenizer(List<LinguisticRule> rules) {
         super(rules);
     }
 
+    /**
+     * Tokenizes some document's content
+     *
+     * @param toTokenize line to tokenize
+     * @return parsed terms
+     */
     @Override
     public List<String> tokenizeString(String toTokenize) {
         String lowerCase = toTokenize.toLowerCase();
@@ -24,16 +53,14 @@ public class AdvancedTokenizer extends BaseTokenizer {
         String mergedSlash = slash.reset(withoutPunct).replaceAll("");
         String toSplit = mergedSlash.trim();
 
-        String[] example = WHITE_SPACES.split(toSplit);
-
-        List<String> terms = Arrays.asList(example);
+        List<String> terms = Arrays.asList(WHITE_SPACES.split(toSplit));
         for (LinguisticRule rule : rules) {
             terms = rule.apply(terms);
         }
 
         for (int i = terms.size() - 1; i >= 0; i--) {
             String term = terms.get(i);
-            if (term.length() < 3 || allNum.reset(term).matches()) {
+            if (allNum.reset(term).matches()) {
                 terms.remove(i);
             }
         }

@@ -1,12 +1,12 @@
 package indexer.structures;
 
-import indexer.structures.BaseDocument;
-import indexer.structures.Block;
-
+/**
+ * Document that holds just it's document id
+ */
 public class SimpleDocument extends Block<Integer> implements BaseDocument {
 
     /**
-     * Class contructor
+     * Class constructor
      *
      * @param key block identifier
      */
@@ -14,6 +14,11 @@ public class SimpleDocument extends Block<Integer> implements BaseDocument {
         super(key);
     }
 
+    /**
+     * Getters for the document id
+     *
+     * @return document's id
+     */
     @Override
     public int getDocId() {
         return key;

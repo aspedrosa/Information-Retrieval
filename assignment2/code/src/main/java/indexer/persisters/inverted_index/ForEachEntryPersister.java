@@ -18,7 +18,7 @@ import java.util.Map;
  * @param <D> type of the documents
  */
 public abstract class ForEachEntryPersister <T extends Block & BaseTerm,
-                                           D extends Block & BaseDocument> implements InvertedIndexBasePersister<T, D> {
+                                             D extends Block & BaseDocument> extends InvertedIndexBasePersister<T, D> {
 
     /**
      * Bytes of the separator to write between the term and the posting list
@@ -39,6 +39,24 @@ public abstract class ForEachEntryPersister <T extends Block & BaseTerm,
     public ForEachEntryPersister(byte[] termDocumentSeparator, byte[] entryTerminator) {
         this.termDocumentSeparator = termDocumentSeparator;
         this.entryTerminator = entryTerminator;
+    }
+
+    /**
+     * Getter of the field documentSeparator
+     *
+     * @return the separator between terms and documents
+     */
+    public byte[] getTermDocumentSeparator() {
+        return termDocumentSeparator;
+    }
+
+    /**
+     * Getter of the field entryTerminator
+     *
+     * @return the terminator after entries
+     */
+    public byte[] getEntryTerminator() {
+        return entryTerminator;
     }
 
     /**
