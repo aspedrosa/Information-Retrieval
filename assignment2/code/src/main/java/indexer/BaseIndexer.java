@@ -1,6 +1,6 @@
 package indexer;
 
-import indexer.persisters.PostIndexingActions;
+import indexer.post_indexing_actions.PostIndexingActions;
 import indexer.structures.BaseDocument;
 import indexer.structures.BaseTerm;
 import indexer.structures.Block;
@@ -16,7 +16,7 @@ import java.util.Map;
  * @param <T> Type of the terms
  * @param <D> Type of the documents
  */
-public abstract class BaseIndexer<T extends Block & BaseTerm, D extends Block & BaseDocument> implements PostIndexingActions<T, D> {
+public abstract class BaseIndexer<T extends Block & BaseTerm, D extends Block & BaseDocument> {
 
     /**
      * The main data structure of the index.
@@ -29,6 +29,8 @@ public abstract class BaseIndexer<T extends Block & BaseTerm, D extends Block & 
      * Associates a document id to an identifier of a document
      */
     protected Map<Integer, String> documentRegistry;
+
+    protected PostIndexingActions<T, D> postIndexingActions;
 
     /**
      * Used to improve some performance. Since blocks' hashcode()
@@ -56,6 +58,10 @@ public abstract class BaseIndexer<T extends Block & BaseTerm, D extends Block & 
         return Collections.unmodifiableMap(documentRegistry);
     }
 
+    public PostIndexingActions<T, D> getPostIndexingActions() {
+        return postIndexingActions;
+    }
+
     /**
      * Default constructor.
      * Uses a HashMap for the inverted index
@@ -63,6 +69,7 @@ public abstract class BaseIndexer<T extends Block & BaseTerm, D extends Block & 
     public BaseIndexer() {
         invertedIndex = new HashMap<>();
         documentRegistry = new HashMap<>();
+        postIndexingActions = null;
     }
 
     /**
@@ -115,20 +122,6 @@ public abstract class BaseIndexer<T extends Block & BaseTerm, D extends Block & 
     public void clear() {
         invertedIndex = new HashMap<>();
         documentRegistry = new HashMap<>();
-    }
-
-    /**
-     * Operates over a entry of the inverted index after
-     *  all the indexing steps and before persisting. This is
-     *  used for types of indexers that need to do some
-     *  type of calculations after the indexing process.
-     *  i.e. normalise document weights
-     *
-     * @param term of the entry to operate
-     * @param postingList of the entry to operate
-     */
-    public void postIndexingActions(T term, List<D> postingList) {
-
     }
 
 }

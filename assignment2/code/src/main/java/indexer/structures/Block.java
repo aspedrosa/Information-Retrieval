@@ -66,4 +66,17 @@ public class Block<T extends Comparable<T>> implements Comparable<Block<T>>, Ser
     public int compareTo(Block<T> block) {
         return key.compareTo(block.key);
     }
+
+    /**
+     * Returns the string representations of the key field.
+     *  Implemented because persisters use the toString
+     *  of terms to know the first key present on the
+     *  file to persist and to use it for the file name
+     *
+     * @return key as string
+     */
+    @Override
+    public String toString() {
+        return key.toString();
+    }
 }

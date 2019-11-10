@@ -1,6 +1,8 @@
 package main.pipelines;
 
 import indexer.BaseIndexer;
+import indexer.post_indexing_actions.PostIndexingActions;
+import indexer.io.persisters.BasePersister;
 import indexer.structures.BaseDocument;
 import indexer.structures.BaseTerm;
 import indexer.structures.Block;
@@ -9,6 +11,7 @@ import parsers.files.FileParser;
 import tokenizer.BaseTokenizer;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * Base class of all pipelines. On this class its defined the
@@ -43,9 +46,15 @@ public abstract class Pipeline<T extends Block & BaseTerm, D extends Block & Bas
     protected CorpusReader corpusReader;
 
     /**
-     * Name of the file to write the final index file
+     * Class to persist the inverted index to disk
      */
-    protected String indexOutputFileName;
+    protected BasePersister<T, List<D>> finalIndexPersister;
+
+    /**
+     * Class to persist the document registry structure
+     *  to disk
+     */
+    protected BasePersister<Integer, String> documentRegistryPersister;
 
     /**
      * Main constructor.
@@ -53,16 +62,20 @@ public abstract class Pipeline<T extends Block & BaseTerm, D extends Block & Bas
      * @param tokenizer Parsers a document's content an splits it into tokens
      * @param indexer Associates a set o documents to a given term
      * @param corpusReader Class to retrieve the files present on the corpus folder
-     * @param indexOutputFileName Name of the file to write the final index file
+     * @param finalIndexPersister in charge of writing to disk the inverted index
+     * @param docRegistryPersister in charge of writing to disk the
+     *  document registry structure
      */
     public Pipeline(BaseTokenizer tokenizer,
                     BaseIndexer<T, D> indexer,
                     CorpusReader corpusReader,
-                    String indexOutputFileName) {
+                    BasePersister<T, List<D>> finalIndexPersister,
+                    BasePersister<Integer, String> docRegistryPersister) {
         this.tokenizer = tokenizer;
         this.indexer = indexer;
         this.corpusReader = corpusReader;
-        this.indexOutputFileName = indexOutputFileName;
+        this.finalIndexPersister = finalIndexPersister;
+        this.documentRegistryPersister = docRegistryPersister;
     }
 
     /**

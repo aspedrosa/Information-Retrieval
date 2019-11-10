@@ -7,7 +7,9 @@ import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
 
 import indexer.FrequencyIndexer;
-import indexer.persisters.inverted_index.FrequencyPersister;
+import indexer.io.persisters.strategies.CSVStrategy;
+import indexer.io.persisters.ObjectStreamPersister;
+import indexer.io.persisters.OutputStreamPersister;
 import indexer.structures.DocumentWithInfo;
 import indexer.structures.SimpleTerm;
 import main.pipelines.Pipeline;
@@ -25,14 +27,11 @@ import tokenizer.linguistic_rules.MinLengthRule;
 import tokenizer.linguistic_rules.SnowballStemmerRule;
 import tokenizer.linguistic_rules.StopWordsRule;
 
-import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.InputStreamReader;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -75,26 +74,17 @@ public class Main {
         FrequencyIndexer indexer = new FrequencyIndexer();
         System.out.println("Created the indexer");
 
-        BaseTokenizer tokenizer;
-        if (parsedArgs.getBoolean("useAdvancedTokenizer")) {
-            Set<String> stopWords = readStopWordsFile(
-                parsedArgs.getString("stopWordsFile"),
-                parsedArgs.getInt("inputBufferSize")
-            );
+        // create an advanced tokenizer
+        Set<String> stopWords = readStopWordsFile(parsedArgs.getString("stopWordsFilename"));
 
-            List<LinguisticRule> rules = new ArrayList<>(2);
-            rules.add(new StopWordsRule(stopWords));
-            rules.add(new SnowballStemmerRule());
-            rules.add(new MinLengthRule(3));
+        List<LinguisticRule> rules = new ArrayList<>(3);
+        rules.add(new StopWordsRule(stopWords));
+        rules.add(new SnowballStemmerRule());
+        rules.add(new MinLengthRule(3));
 
-            tokenizer = new AdvancedTokenizer(rules);
+        BaseTokenizer tokenizer = new AdvancedTokenizer(rules);
 
-            System.out.println("Created the Advanced tokenizer");
-        }
-        else {
-            tokenizer = new SimpleTokenizer();
-            System.out.println("Created the Simple tokenizer");
-        }
+        System.out.println("Created the Advanced tokenizer");
 
         // create an iterator over the corpus folder content
         Iterator<Path> corpusFolder = null;
@@ -116,28 +106,32 @@ public class Main {
         TrecAsciiMedline2004DocParser.addFieldToSave("TI");
         TrecAsciiMedline2004DocParser.addFieldToSave("PMID");
 
-        ObjectOutputStream docRegistryOutput = null;
-        try {
-            docRegistryOutput = new ObjectOutputStream(
-                new BufferedOutputStream(
-                    new FileOutputStream("documentRegistry.bin")
-                )
-            );
-        } catch (IOException e) {
-            System.err.println("ERROR opening document registry output file\n");
-            e.printStackTrace();
-            System.exit(2);
-        }
+        int entriesPerDocRegFile = parsedArgs.getInt("entriesPerDocRegFile");
+        int termsPerFinalIndexFile = parsedArgs.getInt("termsPerFinalIndexFile");
 
         Pipeline<SimpleTerm, DocumentWithInfo<Integer>> pipeline = new SPIMIPipeline<>(
             tokenizer,
             indexer,
             corpusReader,
-            parsedArgs.getString("indexOutputFilename"),
-            docRegistryOutput,
-            parsedArgs.getFloat("maxLoadFactor"),
-            new FrequencyPersister(),
-            parsedArgs.getInt("termsPerFinalIndexFile")
+            new ObjectStreamPersister<>("documentRegistry", entriesPerDocRegFile),
+            new OutputStreamPersister<>(
+                parsedArgs.getString("indexOutputFilename"),
+                termsPerFinalIndexFile,
+                ",".getBytes(),
+                "\n".getBytes(),
+                new CSVStrategy<SimpleTerm, DocumentWithInfo<Integer>>() {
+                    @Override
+                    public byte[] handleKey(SimpleTerm term) {
+                        return term.getTerm().getBytes();
+                    }
+
+                    @Override
+                    public String handleDocument(DocumentWithInfo<Integer> document) {
+                        return String.format("%d:%d", document.getDocId(), document.getExtraInfo());
+                    }
+                }
+            ),
+            parsedArgs.getFloat("maxLoadFactor")
         );
 
         pipeline.execute();
@@ -147,10 +141,9 @@ public class Main {
      * Reads a file containing stop words and builds a set with them
      *
      * @param filePath path to file containing the stop words
-     * @param inputBufferSize size for the buffer of the BufferedReader. Can be null
      * @return stop words
      */
-    private static Set<String> readStopWordsFile(String filePath, Integer inputBufferSize) {
+    private static Set<String> readStopWordsFile(String filePath) {
         InputStreamReader input = null;
         try {
             input = new InputStreamReader(
@@ -163,13 +156,7 @@ public class Main {
             System.exit(2);
         }
 
-        BufferedReader reader;
-        if (inputBufferSize == null) {
-            reader = new BufferedReader(input);
-        }
-        else {
-            reader = new BufferedReader(input, inputBufferSize);
-        }
+        BufferedReader reader = new BufferedReader(input);
 
         Set<String> stopWords = new HashSet<>();
         try {
@@ -202,6 +189,12 @@ public class Main {
             );
 
         argsParser
+            .addArgument("stopWordsFilename")
+            .type(String.class)
+            .action(Arguments.store())
+            .help("path to file containing the stop words");
+
+        argsParser
             .addArgument("corpusFolder")
             .type(String.class)
             .help("Path to folder containing files with documents to index");
@@ -210,27 +203,6 @@ public class Main {
             .addArgument("indexOutputFilename")
             .type(String.class)
             .help("Name of the file to which the index will be stored");
-
-        argsParser
-            .addArgument("-a")
-            .dest("useAdvancedTokenizer")
-            .action(Arguments.storeTrue())
-            .help("Use the advanced tokenizer. If not defined" +
-                  " the simple one is used");
-
-        argsParser
-            .addArgument("--stop-words-file")
-            .dest("stopWordsFile")
-            .type(String.class)
-            .action(Arguments.store())
-            .help("path to file containing the stop words");
-
-        argsParser
-            .addArgument("--input-buffer-size")
-            .dest("inputBufferSize")
-            .type(Integer.class)
-            .action(Arguments.store())
-            .help("size in characters of the buffer for BufferedReader");
 
         argsParser
             .addArgument("--max-load-factor")
@@ -248,7 +220,19 @@ public class Main {
             .type(Integer.class)
             .action(Arguments.store())
             .setDefault(100000)
-            .help("number of terms per a final index file. Default 100000");
+            .help("number of terms per final index file. If" +
+                " a number lower than 1 is received, all the index" +
+                " term will be stored on the same file. Default 100000");
+
+        argsParser
+            .addArgument("--entries-per-doc-reg-file")
+            .dest("entriesPerDocRegFile")
+            .type(Integer.class)
+            .action(Arguments.store())
+            .setDefault(1000000)
+            .help("number of entries per document registry file. If" +
+                " a number lower than 1 is received, all the entries" +
+                " will be stored on the same file. Default 1000000");
 
         Namespace parsedArgs = null;
         try {
@@ -258,32 +242,10 @@ public class Main {
             System.exit(1);
         }
 
-        if (parsedArgs.getBoolean("useAdvancedTokenizer")
-            &&
-            parsedArgs.getString("stopWordsFile") == null) {
-            System.err.println(
-                "ERROR Stop words file must be defined when" +
-                " using the advanced tokenizer");
-            System.exit(1);
-        }
-
-        Integer inputBufferSize = parsedArgs.getInt("inputBufferSize");
-        if (inputBufferSize != null && inputBufferSize <= 0) {
-            System.err.println("ERROR input buffer size must be greater than 0");
-            System.exit(1);
-        }
-
         Float maxLoadFactor = parsedArgs.getFloat("maxLoadFactor");
         if (maxLoadFactor != null && (maxLoadFactor < 0 || maxLoadFactor > 1)) {
             System.err.println("ERROR maximum load factor should be a floating point" +
                 " between 0 and 1");
-            System.exit(1);
-        }
-
-        Integer termsPerFinalIndexFile = parsedArgs.getInt("termsPerFinalIndexFile");
-        if (termsPerFinalIndexFile != null && termsPerFinalIndexFile < 0) {
-            System.err.println("ERROR maximum load factor should be an integer greater" +
-                " than 0");
             System.exit(1);
         }
 

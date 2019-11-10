@@ -1,4 +1,4 @@
-package indexer.persisters;
+package indexer.post_indexing_actions;
 
 import indexer.structures.BaseDocument;
 import indexer.structures.BaseTerm;
@@ -20,12 +20,14 @@ public interface PostIndexingActions<T extends Block & BaseTerm, D extends Block
 
     /**
      * Executes actions after the indexing process and
-     *  before the final presisting to an entry of the
-     *  inverted index
+     *  before the final persisting to an entry of the
+     *  inverted index. This is used for types of indexers
+     *  that need to do some type of calculations after
+     *  the indexing process. i.e. normalise document weights
      *
      * @param term of the entry to operate
      * @param postingList of the entry to operate
      */
-    void postIndexingActions(T term, List<D> postingList);
+    void apply(T term, List<D> postingList);
 
 }

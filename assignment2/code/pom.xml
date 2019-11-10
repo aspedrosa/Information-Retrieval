@@ -6,7 +6,7 @@
 
     <groupId>ua.deti.ri.201920.84732_85098</groupId>
     <artifactId>assignment2</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0.0</version>
 
     <dependencies>
         <dependency>
