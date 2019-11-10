@@ -62,86 +62,118 @@ dividido em vários que vão sendo apresentados ao longo do relatório. Estes
 diagramas foram gerados através do IDEA IntelliJ, consequentemente em anexo
 é disponibilizada a legenda da convenção usada.
 
-\section{Alterações}
-Durante a implementação deste assignment não foi dada atenção a questões de memória,
-no entanto seguimos uma aproximação iterativa em que o pedido de informação
-(conteúdo de ficheiros a ler, documentos, ...) pode ser condicionado segundo as
-limitações de memória em implementações futuras facilmente.
-
-Partes da nossa solução foram moduladas já a pensar nos futuros assignments,
-possibilitando a indexação ser feita em diferentes formatos de documentos e a informação
-presente no index poder variar.
-
 \section{Data Flow}
 \begin{figure}[h]
   \center
-  \includegraphics[width=17cm]{newsequenceDiagram.png}
+  \includegraphics[width=\linewidth]{newsequenceDiagram.png}
   \caption{Diagrama de sequência da solução}
+  \label{fig:dataflow}
 \end{figure}
 
-O pipeline da nossa solução está implementado no método main da classe
-Main. Primeiramente, aqui é instanciado o respetivo Tokenizer e o Indexer.
+O data flow da nossa solução, de modo geral não sofreu grandes
+alterações, apenas migramos o código de execução da pipeline de
+indexação para uma classe separada, em vez de ser definida na
+classe Main.
 
-O Main instância um classe do tipo CorpusReader, sobre a qual fará um for each, no
-qual em que cada iteração receberá um FileParser. O Main itera também com um
-for each sobre o FileParser. Para cada ciclo do último for each mencionado, a classe
-FileParser está continuamente a ler linhas do ficheiro até ter um documento
-válido. Neste momento, passa o conteúdo lido a um DocumentParser que extrai
-do documento a informação importante (identifier e outros campos) criando
-uma classe Document, a qual será devolvida para o for each no método main.
-
-Este documento é registado no index (associar um document id ao identifier do
-documento) e posteriormente os seu termos são indexados.
-
-Por último, as estruturas internas do index são escritas para disco.
+Na figura \ref{fig:dataflow} está representado sequência de execução
+da nossa solução, onde as setas azuis significam que a classe origem
+executa um método da classe destino e as setas vermelhas significam
+que a classe origem cria a classe destino. Deixando de parte as classes
+que têm uma seta vermelha a apontar para si, todas as classes são
+instanciadas na classe Main. Na figura existem várias classes em que é
+apresentado a classe base e a sua implementação, isto pois algumas
+classes base apresentam métodos {\it final} que chamam depois métodos
+abstratos que devem estar definidos em classes de descendentes (padrão
+Template Method).
 
 \section{Packages}
-
 \begin{figure}[H]
   \center
   \includegraphics[width=6cm]{packages_all.png}
   \caption{Árvore de packages da solução}
 \end{figure}
 
-Nesta secção vai ser apresentada uma descrição para cada package presente na
-nossa solução apresentando as principais classes e os seus principais métodos. 
+Nesta secção vão ser apresentadas as alterações feitas a cada package
+relativamente à entrega anterior.
 
 \subsection{main}
 
-Neste package encontra-se a classe com o método main onde é feito o
-processamento dos argumentos e opções do programa e onde é definido o
-pipeline de processamento.
+\begin{figure}[h]
+  \center
+  \includegraphics[width=6cm]{packages_main.png}
+  \caption{Diagrama de classes do package \it main.pipelines}
+\end{figure}
 
-Tem ainda a classe responsável por consultar o index de maneira a
-obter os dados para responder às questões propostas no enunciado.
+
+Como foi dito na secção anterior, o código de execução da pipeline
+de indexação que estava presente na classe Main, foi migrado para
+para uma classe do tipo Pipeline. Ou seja, a classe Main apenas
+tem a responsabilidade de instanciar as classes necessárias para
+a execução da pipeline.
 
 \subsubsection{pipelines}
+
+\begin{figure}[h]
+  \center
+  \includegraphics[width=\linewidth]{packages_main_pipelines.png}
+  \caption{Diagrama de classes do package \it main.pipelines}
+\end{figure}
+
+Este package tem as classes que definem a sequência de execução
+do método de indexação. A classe principal (Pipeline) está encarregue
+de iterar sobre o corpus e passar cada FileParser à implementação
+de Pipeline escolhida (método processFile) e depois disso executar
+o método para persistir o indexer.
+
+A classe SimplePipeline representa a pipeline que foi definida no
+assignment anterior, em que não tem considerações relativamente à
+memória no processo de indexação. A SPIMIPipeline apresenta uma
+implementação em que o método de indexação é feito segundo o
+algoritmo SPIMI, em que durante a indexação, sempre que a memória
+ocupada chegar a um limite, o index atual é escrito para disco, ordenado
+pelos termos. Na altura de persistir o index, esta pipeline faz um merge
+dos vários ficheiros criados na fase anterior. Este merge é feito lendo
+blocos (implementado com a classe BufferedInputStream) de todos os
+ficheiros temporários criados. Para fazer merge destes blocos, é mantida
+uma lista à qual é adicionada iterativamente a entry (termo e posting
+list) em que o termo é menor (alfabeticamente). Caso haja o mesmo termo
+em diferentes blocos é feito o merge das posting lists segundo
+os document ids.
+
+Os ficheiros temporários foram escritos em binário (usando a class
+ObjectOutputStream), já que se revelou ser muito mais rápido do que
+aplicar a forma de persistência que o utilizador escolhe no Main, no
+caso deste assignment CSV. Para guardar o index final foram criados
+vários ficheiros, tendo cada um um número máximo de entries e para
+saber quais os termos presentes em cada ficheiros deste foi inserido
+como sufixo ao nome dos ficheiros o primeiro termo que guardam.
+
+% TODO falar sobre o document registry
 
 \subsection{parsers}
 \begin{figure}[H]
   \center
-  \includegraphics[width=12cm]{packages_parsers}
+  \includegraphics[width=\linewidth]{packages_parsers}
   \caption{Diagrama de classes do package \it parsers}
 \end{figure}
 
 Este package não sofreu grandes alterações relativamente à entrega
 anterior, apenas foi alterado algumas mensagens de erro, os id dos
-documentos agora começa em 0 e algumas operações sobre strings
-obtidas dos ficheiros do corpus /forem removidas, como .trim(), para
-tentar reduzir o número de instanciações da class String.
+documentos agora começa em 0 e algumas operações sobre strings,
+que não alteram o resultado final, obtidas dos ficheiros do corpus
+foram removidas, como .trim(), para tentar reduzir o número de
+instanciações da classe String.
 
 \subsection{tokenizer}
-\begin{figure}[h]
+\begin{figure}[H]
   \center
-  \includegraphics[width=11cm]{packages_tokenizer.png}
+  \includegraphics[width=\linewidth]{packages_tokenizer.png}
   \caption{Diagrama de classes do package \it tokenizer}
 \end{figure}
 
 Este package também não sofreu grandes alterações relativamente à
-entrega anterior, apenas foi alterado a maneira como o conteúdos dos
-campos são transformado em tokens. Essa operação foi agrupada numa
-única string variável do tipo String para novamente para tentar
-evitar o número de instanciações da classe String
+entrega anterior, apenas foi criada uma nova Linguistica Rule que
+remove os termos que têm menos de um certo número de caracteres.
 
 \subsection{indexer}
 \begin{figure}[h]
