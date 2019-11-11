@@ -10,18 +10,20 @@ import java.util.List;
 
 /**
  * Base strategy to format terms and documents
- *  into a CSV format
  *
  * @param <T> type of the terms
  * @param <D> type of the documents
  */
-public abstract class CSVStrategy<T extends Block & BaseTerm, D extends Block &BaseDocument> extends OutputStreamStrategy<T, List<D>> {
+public abstract class IndexerStrategy<T extends Block & BaseTerm, D extends Block &BaseDocument> extends OutputStreamStrategy<T, List<D>> {
 
     /**
-     * Byte representation of a comma. Avoids having
-     *  to instantiate the same byte[] every time
+     * Main constructor
+     *
+     * @param separator to write between terms and documents
      */
-    private static final byte[] COMMA = ",".getBytes();
+    public IndexerStrategy(byte[] separator) {
+        super(separator, "\n".getBytes());
+    }
 
     /**
      * Iterates over the documents, writing documents one by one
@@ -33,7 +35,7 @@ public abstract class CSVStrategy<T extends Block & BaseTerm, D extends Block &B
     @Override
     public void handleValue(OutputStream output, List<D> documents) {
         for (int i = 0; i < documents.size(); i++) {
-            byte[] document = handleDocument(documents.get(i)).getBytes();
+            byte[] document = handleDocument(documents.get(i));
 
             try {
                 output.write(document, 0, document.length);
@@ -44,7 +46,7 @@ public abstract class CSVStrategy<T extends Block & BaseTerm, D extends Block &B
 
             if (i < documents.size() - 1) {
                 try {
-                    output.write(COMMA, 0, COMMA.length);
+                    output.write(keyValueSeparator, 0, keyValueSeparator.length);
                 } catch (IOException e) {
                     e.printStackTrace();
                     System.exit(2);
@@ -58,8 +60,8 @@ public abstract class CSVStrategy<T extends Block & BaseTerm, D extends Block &B
      *  representation
      *
      * @param document to transform
-     * @return String representation of the document
+     * @return a byte representation of the document
      */
-    public abstract String handleDocument(D document);
+    public abstract byte[] handleDocument(D document);
 
 }

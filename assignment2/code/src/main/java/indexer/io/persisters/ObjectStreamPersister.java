@@ -37,16 +37,14 @@ public class ObjectStreamPersister<K extends Comparable, V> extends BasePersiste
     }
 
     @Override
-    protected void createNewOutput(String firstKey) throws IOException {
+    protected void createNewOutput(String newFilename) throws IOException {
         currentOutput = new ObjectOutputStream(
             new BufferedOutputStream(
                 new FileOutputStream(
-                    String.format("%s_%s_%s", prefixFilename, filesCounter++, firstKey)
+                    newFilename
                 )
             )
         );
-
-        firstKeys.add(firstKey);
     }
 
     /**

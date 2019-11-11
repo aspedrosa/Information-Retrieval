@@ -17,16 +17,6 @@ import java.util.Map;
 public class OutputStreamPersister<K extends Comparable, V> extends BasePersister<K, V> {
 
     /**
-     * To write between keys and values
-     */
-    private byte[] keyValueSeparator;
-
-    /**
-     * To write after an entry
-     */
-    private byte[] entryTerminator;
-
-    /**
      * Currently open output stream to write entries
      */
     private OutputStream currentOutput;
@@ -41,18 +31,12 @@ public class OutputStreamPersister<K extends Comparable, V> extends BasePersiste
      *
      * @param prefixFilename prefix for the files created
      * @param entriesLimitCount maximum of entries per file
-     * @param keyValueSeparator To write between keys and values
-     * @param entryTerminator To write after an entry
      * @param strategy Strategy to transform entries in byte[]
      */
     public OutputStreamPersister(String prefixFilename,
                                  int entriesLimitCount,
-                                 byte[] keyValueSeparator,
-                                 byte[] entryTerminator,
                                  OutputStreamStrategy<K, V> strategy) {
         super(prefixFilename, entriesLimitCount);
-        this.keyValueSeparator = keyValueSeparator;
-        this.entryTerminator = entryTerminator;
         this.strategy = strategy;
     }
 
@@ -62,14 +46,12 @@ public class OutputStreamPersister<K extends Comparable, V> extends BasePersiste
     }
 
     @Override
-    protected void createNewOutput(String firstKey) throws IOException {
+    protected void createNewOutput(String newFilename) throws IOException {
         currentOutput = new BufferedOutputStream(
             new FileOutputStream(
-                String.format("%s_%s_%s", prefixFilename, filesCounter++, firstKey)
+                newFilename
             )
         );
-
-        firstKeys.add(firstKey);
     }
 
     /**
@@ -85,11 +67,11 @@ public class OutputStreamPersister<K extends Comparable, V> extends BasePersiste
     @Override
     protected void writeEntry(Map.Entry<K, V> entry, boolean lastEntry) throws IOException {
         currentOutput.write(strategy.handleKey(entry.getKey()));
-        currentOutput.write(keyValueSeparator, 0, keyValueSeparator.length);
+        currentOutput.write(strategy.getKeyValueSeparator(), 0, strategy.getKeyValueSeparator().length);
         strategy.handleValue(currentOutput, entry.getValue());
 
         if (!lastEntry) {
-            currentOutput.write(entryTerminator, 0, entryTerminator.length);
+            currentOutput.write(strategy.getEntryTerminator(), 0, strategy.getEntryTerminator().length);
         }
     }
 

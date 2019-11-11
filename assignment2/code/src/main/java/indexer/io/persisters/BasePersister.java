@@ -97,14 +97,28 @@ public abstract class BasePersister<K extends Comparable, V> implements Closeabl
      */
     public void persist(List<Map.Entry<K, V>> sortedEntries, boolean isLast) throws IOException {
         if (outputIsNull()) {
-            createNewOutput(sortedEntries.get(0).getKey().toString());
+            String newFilename = String.format(
+                "%s_%s_%s",
+                prefixFilename,
+                filesCounter++,
+                sortedEntries.get(0).getKey().toString()
+            );
+            createNewOutput(newFilename);
+            firstKeys.add(sortedEntries.get(0).getKey().toString());
         }
 
         for (int i = 0; i < sortedEntries.size(); i++) {
             if (entriesLimitCount > 0 && entriesCurrentCount >= entriesLimitCount) {
                 close();
 
-                createNewOutput(sortedEntries.get(i).getKey().toString());
+                String newFilename = String.format(
+                    "%s_%s_%s",
+                    prefixFilename,
+                    filesCounter++,
+                    sortedEntries.get(i).getKey().toString()
+                );
+                createNewOutput(newFilename);
+                firstKeys.add(sortedEntries.get(i).getKey().toString());
 
                 entriesCurrentCount = 0;
             }
@@ -135,11 +149,10 @@ public abstract class BasePersister<K extends Comparable, V> implements Closeabl
      *  file counter and the key of the first entry
      *  that will be written to the new output
      *
-     * @param firstKey string representation of the key of
-     *  the first entry that will be written to the new output
+     * @param newFilename filename for the new output
      * @throws IOException if some error occurs while opening the new output
      */
-    protected abstract void createNewOutput(String firstKey) throws IOException;
+    protected abstract void createNewOutput(String newFilename) throws IOException;
 
     /**
      * Descendent classes implement this method accordingly

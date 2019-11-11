@@ -1,5 +1,6 @@
 package indexer;
 
+import indexer.post_indexing_actions.CalculateWeightsPostIndexingAction;
 import indexer.structures.aux_structs.DocumentWeightAndPositions;
 
 import java.util.ArrayList;
@@ -23,9 +24,12 @@ public class WeightsAndPositionsIndexer extends WeightsIndexer<DocumentWeightAnd
      * Main constructor. Since is a specific
      * indexer, on the indexer it creates the necessary
      * classes specific to it
+     *
+     * @param postIndexingActions calculates the weights that can only be
+     *  calculated at the end of the indexing processing
      */
-    public WeightsAndPositionsIndexer() {
-        super(null); // TODO insert specific post indexing actions
+    public WeightsAndPositionsIndexer(CalculateWeightsPostIndexingAction<DocumentWeightAndPositions> postIndexingActions) {
+        super(postIndexingActions);
     }
 
     protected void insertDocument(int documentId, Map<String, Integer> frequencies) {

@@ -7,17 +7,20 @@ import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
 
 import indexer.FrequencyIndexer;
-import indexer.io.persisters.strategies.CSVStrategy;
 import indexer.io.persisters.ObjectStreamPersister;
 import indexer.io.persisters.OutputStreamPersister;
-import indexer.structures.DocumentWithInfo;
-import indexer.structures.SimpleTerm;
+import indexer.io.persisters.strategies.FrequencyStrategy;
+import indexer.io.persisters.strategies.WeightsAndPositionStrategy;
+import indexer.io.persisters.strategies.WeightStrategy;
+import indexer.post_indexing_actions.LNC_LTC_Weighting;
+import indexer.structures.aux_structs.DocumentWeight;
+import indexer.WeightsAndPositionsIndexer;
+import indexer.WeightsIndexer;
 import main.pipelines.Pipeline;
 import main.pipelines.SPIMIPipeline;
 import parsers.corpus.CorpusReader;
 import parsers.corpus.ResolveByExtension;
 import parsers.documents.TrecAsciiMedline2004DocParser;
-import parsers.files.FileParser;
 import parsers.files.TrecAsciiMedline2004FileParser;
 import tokenizer.AdvancedTokenizer;
 import tokenizer.BaseTokenizer;
@@ -68,23 +71,6 @@ public class Main {
     public static void main(String[] args) {
         Namespace parsedArgs = parseProgramArguments(args);
 
-        FileParser.setReaderBufferSize(parsedArgs.getInt("inputBufferSize"));
-
-        FrequencyIndexer indexer = new FrequencyIndexer();
-        System.out.println("Created the indexer");
-
-        // create an advanced tokenizer
-        Set<String> stopWords = readStopWordsFile(parsedArgs.getString("stopWordsFilename"));
-
-        List<LinguisticRule> rules = new ArrayList<>(3);
-        rules.add(new StopWordsRule(stopWords));
-        rules.add(new SnowballStemmerRule());
-        rules.add(new MinLengthRule(3));
-
-        BaseTokenizer tokenizer = new AdvancedTokenizer(rules);
-
-        System.out.println("Created the Advanced tokenizer");
-
         // create an iterator over the corpus folder content
         Iterator<Path> corpusFolder = null;
         try {
@@ -108,30 +94,74 @@ public class Main {
         int entriesPerDocRegFile = parsedArgs.getInt("entriesPerDocRegFile");
         int termsPerFinalIndexFile = parsedArgs.getInt("termsPerFinalIndexFile");
 
-        Pipeline<SimpleTerm, DocumentWithInfo<Integer>> pipeline = new SPIMIPipeline<>(
-            tokenizer,
-            indexer,
-            corpusReader,
-            new ObjectStreamPersister<>("documentRegistry", entriesPerDocRegFile),
-            new OutputStreamPersister<>(
-                parsedArgs.getString("indexOutputFilename"),
-                termsPerFinalIndexFile,
-                ",".getBytes(),
-                "\n".getBytes(),
-                new CSVStrategy<SimpleTerm, DocumentWithInfo<Integer>>() {
-                    @Override
-                    public byte[] handleKey(SimpleTerm term) {
-                        return term.getTerm().getBytes();
-                    }
+        // create an advanced tokenizer
+        Set<String> stopWords = readStopWordsFile(parsedArgs.getString("stopWordsFilename"));
 
-                    @Override
-                    public String handleDocument(DocumentWithInfo<Integer> document) {
-                        return String.format("%d:%d", document.getDocId(), document.getExtraInfo());
-                    }
-                }
-            ),
-            parsedArgs.getFloat("maxLoadFactor")
-        );
+        List<LinguisticRule> rules = new ArrayList<>(3);
+        rules.add(new StopWordsRule(stopWords));
+        rules.add(new SnowballStemmerRule());
+        rules.add(new MinLengthRule(3));
+
+        BaseTokenizer tokenizer = new AdvancedTokenizer(rules);
+
+        System.out.println("Created the Advanced tokenizer");
+
+        Pipeline pipeline;
+        if (parsedArgs.getBoolean("useWeightsIndexer")) {
+            WeightsIndexer<DocumentWeight> indexer = new WeightsIndexer<>(
+                new LNC_LTC_Weighting<>()
+            );
+            System.out.println("Created weights indexer");
+
+            pipeline = new SPIMIPipeline<>(
+                tokenizer,
+                indexer,
+                corpusReader,
+                new ObjectStreamPersister<>("documentRegistry", entriesPerDocRegFile),
+                new OutputStreamPersister<>(
+                    parsedArgs.getString("indexOutputFilename"),
+                    termsPerFinalIndexFile,
+                    new WeightStrategy()
+                ),
+                parsedArgs.getFloat("maxLoadFactor")
+            );
+        }
+        else if (parsedArgs.getBoolean("useWeightsAndPositionsIndexer")) {
+            WeightsAndPositionsIndexer indexer = new WeightsAndPositionsIndexer(
+                new LNC_LTC_Weighting<>()
+            );
+            System.out.println("Created weights and positions indexer");
+
+            pipeline = new SPIMIPipeline<>(
+                tokenizer,
+                indexer,
+                corpusReader,
+                new ObjectStreamPersister<>("documentRegistry", entriesPerDocRegFile),
+                new OutputStreamPersister<>(
+                    parsedArgs.getString("indexOutputFilename"),
+                    termsPerFinalIndexFile,
+                    new WeightsAndPositionStrategy()
+                ),
+                parsedArgs.getFloat("maxLoadFactor")
+            );
+        }
+        else {
+            FrequencyIndexer indexer = new FrequencyIndexer();
+            System.out.println("Created frequency indexer");
+
+            pipeline = new SPIMIPipeline<>(
+                tokenizer,
+                indexer,
+                corpusReader,
+                new ObjectStreamPersister<>("documentRegistry", entriesPerDocRegFile),
+                new OutputStreamPersister<>(
+                    parsedArgs.getString("indexOutputFilename"),
+                    termsPerFinalIndexFile,
+                    new FrequencyStrategy()
+                ),
+                parsedArgs.getFloat("maxLoadFactor")
+            );
+        }
 
         pipeline.execute();
     }
@@ -184,7 +214,7 @@ public class Main {
             .build()
             .description(
                 "Parses a set of files that contain documents, indexes those documents" +
-                " using an inverted index and store that index to a file"
+                " using a frequency indexer by default and stores the index to a file"
             );
 
         argsParser
@@ -202,6 +232,18 @@ public class Main {
             .addArgument("indexOutputFilename")
             .type(String.class)
             .help("Name of the file to which the index will be stored");
+
+        argsParser
+            .addArgument("-w")
+            .dest("useWeightsIndexer")
+            .action(Arguments.storeTrue())
+            .help("Uses the indexer that calculates weight terms");
+
+        argsParser
+            .addArgument("-p")
+            .dest("useWeightsAndPositionsIndexer")
+            .action(Arguments.storeTrue())
+            .help("Uses the indexer that calculates weight terms and stores positions");
 
         argsParser
             .addArgument("--max-load-factor")
@@ -245,6 +287,12 @@ public class Main {
         if (maxLoadFactor != null && (maxLoadFactor < 0 || maxLoadFactor > 1)) {
             System.err.println("ERROR maximum load factor should be a floating point" +
                 " between 0 and 1");
+            System.exit(1);
+        }
+
+        if (parsedArgs.getBoolean("useWeightsIndexer") &&
+            parsedArgs.getBoolean("useWeightsAndPositionsIndexer")) {
+            System.err.println("Define only one or none type of indexer (Default FrequencyIndexer)");
             System.exit(1);
         }
 

@@ -12,6 +12,45 @@ import java.io.OutputStream;
 public abstract class OutputStreamStrategy<K extends Comparable, V> {
 
     /**
+     * To write between keys and values
+     */
+    protected byte[] keyValueSeparator;
+
+    /**
+     * To write after an entry
+     */
+    protected byte[] entryTerminator;
+
+    /**
+     * Main constructor
+     *
+     * @param keyValueSeparator To write between keys and values
+     * @param entryTerminator To write after an entry
+     */
+    public OutputStreamStrategy(byte[] keyValueSeparator, byte[] entryTerminator) {
+        this.keyValueSeparator = keyValueSeparator;
+        this.entryTerminator = entryTerminator;
+    }
+
+    /**
+     * Getter of the key and value separator
+     *
+     * @return to write after the key
+     */
+    public byte[] getKeyValueSeparator() {
+        return keyValueSeparator;
+    }
+
+    /**
+     * Getter of the entry terminator field
+     *
+     * @return to write after an entry
+     */
+    public byte[] getEntryTerminator() {
+        return entryTerminator;
+    }
+
+    /**
      * Transforms the key into bytes
      *
      * @param key to transform
