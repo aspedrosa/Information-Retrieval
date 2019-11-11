@@ -73,6 +73,17 @@ public abstract class BaseIndexer<T extends Block & BaseTerm, D extends Block & 
     }
 
     /**
+     * Constructor to define the a post indexing actions
+     *  for the indexer
+     */
+    public BaseIndexer(PostIndexingActions<T, D> postIndexingActions) {
+        this.invertedIndex = new HashMap<>();
+        this.documentRegistry = new HashMap<>();
+        this.postIndexingActions = postIndexingActions;
+    }
+
+
+    /**
      * Associates a documentId to a string identifier
      *
      * @param documentId of the document

@@ -21,7 +21,6 @@ import parsers.files.FileParser;
 import parsers.files.TrecAsciiMedline2004FileParser;
 import tokenizer.AdvancedTokenizer;
 import tokenizer.BaseTokenizer;
-import tokenizer.SimpleTokenizer;
 import tokenizer.linguistic_rules.LinguisticRule;
 import tokenizer.linguistic_rules.MinLengthRule;
 import tokenizer.linguistic_rules.SnowballStemmerRule;
