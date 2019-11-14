@@ -1,10 +1,12 @@
 package indexer.structures.aux_structs;
 
+import java.io.Serializable;
+
 /**
  * To use as extraInfo of the class BlockWithInfo
  *  and use the Block as a Document
  */
-public class DocumentWeight {
+public class DocumentWeight implements Serializable {
 
     /**
      * Weight of a document for a given term

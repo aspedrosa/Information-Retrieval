@@ -71,6 +71,16 @@ public class Document {
     }
 
     /**
+     * Getter for the CURRENT_ID field.
+     * Mainly used by CalculateWeightsPostIndexingAction classes
+     *
+     * @return current global of the documents
+     */
+    public static int getGlobalId() {
+        return CURRENT_ID;
+    }
+
+    /**
      * Default constructor
      */
     public Document() {

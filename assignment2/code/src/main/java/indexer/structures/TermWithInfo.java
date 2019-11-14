@@ -9,6 +9,14 @@ package indexer.structures;
 public class TermWithInfo<V> extends BlockWithInfo<String, V> implements BaseTerm {
 
     /**
+     * Default constructor. Used by indexers
+     *  to instantiate and use as a dummy term
+     */
+    public TermWithInfo() {
+        super(null, null);
+    }
+
+    /**
      * Main constructor
      *
      * @param key       block identifier
@@ -26,6 +34,16 @@ public class TermWithInfo<V> extends BlockWithInfo<String, V> implements BaseTer
     @Override
     public String getTerm() {
         return key;
+    }
+
+    /**
+     * Setter of the term
+     *
+     * @param newTerm the new term
+     */
+    @Override
+    public void setTerm(String newTerm) {
+        this.key = newTerm;
     }
 
 }

@@ -5,9 +5,14 @@ import indexer.structures.DocumentWithInfo;
 import indexer.structures.TermWithInfo;
 import indexer.structures.aux_structs.DocumentWeight;
 
-import java.util.Map;
-
-public class WeightsIndexer extends WeightsIndexerBase<DocumentWeight> {
+/**
+ * Indexes terms associating weights to terms
+ *  for weight ranking of documents
+ *
+ * @param <V> type of the extra info of the
+ *  documents, which has a term associated
+ */
+public abstract class WeightsIndexerBase <V extends DocumentWeight> extends BaseIndexer<TermWithInfo<Float>, DocumentWithInfo<V>> {
 
     /**
      * Main constructor
@@ -15,14 +20,8 @@ public class WeightsIndexer extends WeightsIndexerBase<DocumentWeight> {
      * @param postIndexingActions calculates the weights that can only be
      *  calculated at the end of the indexing processing
      */
-    public WeightsIndexer(CalculateWeightsPostIndexingAction<DocumentWeight> postIndexingActions) {
+    public WeightsIndexerBase(CalculateWeightsPostIndexingAction<V> postIndexingActions) {
         super(postIndexingActions);
-        dummyTerm = new TermWithInfo<>();
-    }
-
-    @Override
-    protected void insertDocument(int documentId, Map<String, Integer> frequencies) {
-        // TODO
     }
 
 }

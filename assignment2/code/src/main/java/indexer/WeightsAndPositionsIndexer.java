@@ -1,9 +1,11 @@
 package indexer;
 
 import indexer.post_indexing_actions.CalculateWeightsPostIndexingAction;
+import indexer.structures.TermWithInfo;
 import indexer.structures.aux_structs.DocumentWeightAndPositions;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -12,7 +14,7 @@ import java.util.Map;
  *  the positions that a certain term appears in a
  *  certain document
  */
-public class WeightsAndPositionsIndexer extends WeightsIndexer<DocumentWeightAndPositions> {
+public class WeightsAndPositionsIndexer extends WeightsIndexerBase<DocumentWeightAndPositions> {
 
     /**
      * Auxiliary structure to store the positions for each
@@ -30,6 +32,8 @@ public class WeightsAndPositionsIndexer extends WeightsIndexer<DocumentWeightAnd
      */
     public WeightsAndPositionsIndexer(CalculateWeightsPostIndexingAction<DocumentWeightAndPositions> postIndexingActions) {
         super(postIndexingActions);
+        dummyTerm = new TermWithInfo<>();
+        auxTermsPositions = new HashMap<>();
     }
 
     protected void insertDocument(int documentId, Map<String, Integer> frequencies) {

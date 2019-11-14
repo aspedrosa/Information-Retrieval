@@ -8,6 +8,14 @@ package indexer.structures;
 public class SimpleTerm extends Block<String> implements BaseTerm {
 
     /**
+     * Default constructor. Used by indexers
+     *  to instantiate and use as a dummy term
+     */
+    public SimpleTerm() {
+        super(null);
+    }
+
+    /**
      * Main constructor
      *
      * @param term the term

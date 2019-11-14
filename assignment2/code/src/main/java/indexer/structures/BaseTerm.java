@@ -13,4 +13,11 @@ public interface BaseTerm {
      */
     String getTerm();
 
+    /**
+     * Setter of the term
+     *
+     * @return the term
+     */
+    void setTerm(String newTerm);
+
 }

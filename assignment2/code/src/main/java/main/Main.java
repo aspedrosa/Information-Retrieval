@@ -20,10 +20,12 @@ import main.pipelines.Pipeline;
 import main.pipelines.SPIMIPipeline;
 import parsers.corpus.CorpusReader;
 import parsers.corpus.ResolveByExtension;
+import parsers.documents.Document;
 import parsers.documents.TrecAsciiMedline2004DocParser;
 import parsers.files.TrecAsciiMedline2004FileParser;
 import tokenizer.AdvancedTokenizer;
 import tokenizer.BaseTokenizer;
+import tokenizer.SimpleTokenizer;
 import tokenizer.linguistic_rules.LinguisticRule;
 import tokenizer.linguistic_rules.MinLengthRule;
 import tokenizer.linguistic_rules.SnowballStemmerRule;
@@ -108,7 +110,7 @@ public class Main {
 
         Pipeline pipeline;
         if (parsedArgs.getBoolean("useWeightsIndexer")) {
-            WeightsIndexer<DocumentWeight> indexer = new WeightsIndexer<>(
+            WeightsIndexer indexer = new WeightsIndexer(
                 new LNC_LTC_Weighting<>()
             );
             System.out.println("Created weights indexer");
