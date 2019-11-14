@@ -5,6 +5,8 @@ import indexer.structures.DocumentWithInfo;
 import indexer.structures.TermWithInfo;
 import indexer.structures.aux_structs.DocumentWeight;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 public class WeightsIndexer extends WeightsIndexerBase<DocumentWeight> {
@@ -22,7 +24,18 @@ public class WeightsIndexer extends WeightsIndexerBase<DocumentWeight> {
 
     @Override
     protected void insertDocument(int documentId, Map<String, Integer> frequencies) {
-        // TODO
+        frequencies.forEach((term, count) -> {
+            dummyTerm.setTerm(term);
+
+            List<DocumentWithInfo<DocumentWeight>> postingList = invertedIndex.get(dummyTerm);
+
+            if (postingList == null) {
+                postingList = new LinkedList<>();
+                invertedIndex.put(new TermWithInfo<>(term, .0f), postingList);
+            }
+
+            postingList.add(new DocumentWithInfo<>(documentId, new DocumentWeight(count)));
+        });
     }
 
 }

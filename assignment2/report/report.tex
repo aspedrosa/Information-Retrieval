@@ -1,6 +1,6 @@
 % Based on a template created by João Alegria (https://github.com/joao-alegria)
 %  and Filipe Pires (https://github.com/FilipePires98)
- 
+
 \documentclass[12pt]{article}
 
 \usepackage[english]{babel}
@@ -18,7 +18,7 @@
 % Page dimensions
 \topmargin -1.0cm
 \oddsidemargin 0.0cm
-\textwidth 16cm 
+\textwidth 16cm
 \textheight 23cm
 \footskip 1.0cm
 
@@ -101,7 +101,7 @@ relativamente à entrega anterior.
 \begin{figure}[h]
   \center
   \includegraphics[width=6cm]{packages_main.png}
-  \caption{Diagrama de classes do package \it main.pipelines}
+  \caption{Diagrama de classes do package \it main}
 \end{figure}
 
 
@@ -115,7 +115,7 @@ a execução da pipeline.
 
 \begin{figure}[h]
   \center
-  \includegraphics[width=\linewidth]{packages_main_pipelines.png}
+  \includegraphics[width=14cm]{packages_main_pipelines.png}
   \caption{Diagrama de classes do package \it main.pipelines}
 \end{figure}
 
@@ -130,17 +130,20 @@ assignment anterior, em que não tem considerações relativamente à
 memória no processo de indexação. A SPIMIPipeline apresenta uma
 implementação em que o método de indexação é feito segundo o
 algoritmo SPIMI, em que durante a indexação, sempre que a memória
-ocupada chegar a um limite, o index atual é escrito para disco, ordenado
-pelos termos. Na altura de persistir o index, esta pipeline faz um merge
-dos vários ficheiros criados na fase anterior. Este merge é feito lendo
-blocos (implementado com a classe BufferedInputStream) de todos os
-ficheiros temporários criados. Para fazer merge destes blocos, é mantida
-uma lista à qual é adicionada iterativamente a entry (termo e posting
-list) em que o termo é menor (alfabeticamente). Caso haja o mesmo termo
-em diferentes blocos é feito o merge das posting lists segundo
-os document ids.
+ocupada chegar a um limite (80\% da memória máxima), o index atual
+é escrito para disco, ordenado pelos termos. De maneira a criar um index
+final, esta pipeline faz um merge dos vários ficheiros criados na
+fase anterior. Este merge é feito lendo blocos (implementado com a
+classes que usam métodos de buffering enquanto lêm, como por exempo
+BufferedInputStream e BufferedReader) de todos os ficheiros temporários
+criados. Para fazer merge destes blocos, é mantida uma lista à qual é
+adicionada iterativamente a entry (termo e posting list) em que o termo é
+menor (alfabeticamente) de entre as várias entries lidas dos vários
+ficheiros temporários a fazer merge. Caso haja o mesmo termo em
+diferentes blocos é feito o merge das posting lists segundo os
+document ids.
 
-Os ficheiros temporários foram escritos em binário (usando a class
+Os ficheiros temporários foram escritos em binário (usando a classe
 ObjectOutputStream), já que se revelou ser muito mais rápido do que
 aplicar a forma de persistência que o utilizador escolhe no Main, no
 caso deste assignment CSV. Para guardar o index final foram criados
@@ -148,7 +151,13 @@ vários ficheiros, tendo cada um um número máximo de entries e para
 saber quais os termos presentes em cada ficheiros deste foi inserido
 como sufixo ao nome dos ficheiros o primeiro termo que guardam.
 
-% TODO falar sobre o document registry
+A classe indexer, para além de guardar o index invertido, guarda também
+o document registry que contêm a associação entre um document id, gerado por nós cada vez que um documento é criado, e o identificador presente nos
+documentos, no caso deste corpus o campo PMID. Como a geração deste id é incremental e não existem vários documentos com o mesmo document id, na
+altura da indexação, quando a memória atingir o limite máximo, podemos
+já escrever esta estrutura num ficheiro final. A maneira como esta
+estrutura será persistida vai ser explicada mais à frente no package
+indexer.persisters.
 
 \subsection{parsers}
 \begin{figure}[H]
@@ -176,131 +185,154 @@ entrega anterior, apenas foi criada uma nova Linguistica Rule que
 remove os termos que têm menos de um certo número de caracteres.
 
 \subsection{indexer}
-\begin{figure}[h]
+\begin{figure}[H]
   \center
-  \includegraphics[width=8cm]{packages_indexer.png}
+  \includegraphics[width=\linewidth]{packages_indexer.png}
   \caption{Diagrama de classes do package \it indexer}
 \end{figure}
 
-Package com as classes que armazenam em memória o index invertido e
-a associação entre o id de um documento e o seu identifier.
-
-Aqui está presente a class BaseIndexer que serve como classe base para
-diferentes implementações de indexers. O index invertido é guardado numa
-estrutura do tipo mapa, permitindo ao programador definir a implementação
-desta interface, sendo por defeito usado um HashMap. A classe base referida
-é genérica o que possibilita que sejam criados diferentes indexers com a
-mesma estrutura, o que leva às classes descendentes a implementar o método
-{\it indexTerms} que guarda os termos de um documento no index invertido,
-com as estruturas especificas desse indexer.
+Este package foi o que sofreu mais alterações relativamente à entrega
+anterior. Foram criados novas classes indexer (árvore de classes
+WeightsIndexerBase) que guardam pesos tanto para o termos como
+para os documentos presentes nas posting lists. Foi criado também
+um novo package, post\_indexing\_actions, que contêm classes que
+aplicam sobre cada entry do indexer ações depois do processo de
+indexação e antes de serem persistidos de modo final, ou seja, no
+caso da pipeline que aplica o algoritmo SPIMI, estas ações apenas
+serão aplicadas quando uma entry estiver pronta para ser escrita
+para o ficheiro do index final, por outras palavras, depois das
+posting lists dos termos iguais presentes nos vários ficheiros
+temporários serem combinadas. Cada indexer tem uma classe
+post\_indexing\_action especifica associada. Por fim, foi feito
+um refactor relativamente à persistência das estruturas internas
+do indexer.
 
 \subsubsection{indexer.structures}
-\begin{figure}[h]
+\begin{figure}[H]
   \center
   \includegraphics[width=10cm]{packages_indexer_structures.png}
   \caption{Diagrama de classes do package \it indexer.structures}
 \end{figure}
 
-Neste package estão os blocos que constroem o index invertido e que permitem
-a extensibilidade do mesmo. Tanto a chave do index invertido como o valor presente
-na lista associada descende do tipo Block que possui uma key (no caso do termo é o
-próprio term e nos documentos o seu id) pela qual é comparável entre si. Em casos
-em que seja necessário ter mais informação associada (contagens por exemplo)
-a classe BlockWithInfo, descendente de Block, permite isso mesmo.
-
-Para distinguir termos de documentos foram criadas as interfaces BaseTerm e BaseDocument,
-logo classes que guardam informação sobre termos devem descender do tipo Block e
-implementar a interface BaseTerm e classes que guardam informação sobre documentos
-devem descender do tipo Block e implementar a interface BaseDocument.
-
-\subsubsection{indexer.persisters}
-\begin{figure}[H]
-  \center
-  \includegraphics[width=16cm]{packages_indexer_persisters.png}
-  \caption{Diagrama de classes do package \it indexer.persisters}
-\end{figure}
-
-Aqui encontram-se as classes responsáveis por implementar as diversas
-estratégias de guardar as estruturas internas da class BaseIndexer
-para disco. Como este indexer apresenta duas estruturas internas,
-damos a possibilidade de criar diferentes estratégias para cada
-estrutura, assumindo sempre que guardamos para o mesmo ficheiro as
-duas estruturas. A classe BaseIndexer, no método {\it persist},
-recebe um BasePersister que irá aplicar a estratégia para guardar
-ambas as estruturas.
+Deste subpackage foram removidos as classes especificas de termos ou
+documentos, por exemplo um documento com frequência é criado com uma
+classe BlockWithInfo que implementa a interface BaseDocument em que o
+tipo da extraInfo da classe BlockWithInfo é Integer. Para criar um
+documento com weight (float) teria de criar um uma outra classe
+semelhante à anterior mas o tipo da extraInfo seria do tipo Float.
+Para evitar isso criou-se as quatro combinações das classes Block
+(Block e BlockWithInfo) com as classes BaseTerm e BaseDocument.
 
 \begin{figure}[h]
   \center
-  \includegraphics[width=16cm]{packages_indexer_persisters_impl.png}
-  \caption{Diagrama de classes do package {\it indexer.persisters.inverted\_index}
-  à esquerda e do package \it indexer.persisters.document\_identification
-  à direita}
+  \includegraphics[width=5cm]{packages_indexer_structures_auxstructs.png}
+  \caption{Diagrama de classes do package \it indexer.structures.aux\_structs}
 \end{figure}
+
+O package aux\_structs contêm classes a serem usadas no campo
+extraInfo das classes descendentes da classe BlockWithInfo. A
+duas classes representadas são usadas como extraInfo dos documentos
+dos indexers que calculam weights para termos e documentos.
+
+\subsubsection{indexer.io.persisters}
+\begin{figure}[H]
+  \center
+  \includegraphics[width=\linewidth]{packages_indexer_io_persisters.png}
+  \caption{Diagrama de classes do package \it indexer.io.persisters}
+\end{figure}
+
+Como as estruturas internas do indexer são mapas, desenvolvemos uma
+nova versão dos persisters em que as classes bases (BasePersister)
+iteram sobre as as entries (key:value) ordenadas pela key, e as
+classes descendentes devem implementar o modo como cada entry é
+escrita para disco. Nos implementamos dois modos de persistência,
+um usando uma ObjectOutputStream e outro usando uma OutputStream.
+A primeira escreve as entries como objectos Map.Entry e o segundo
+escreve a representação da key em bytes, um separador, a
+representação do value em bytes e um terminador. Este ultimo tipo
+de persister implica defenir uma OutputStreamStrategy que define
+a estratégia de transformar as keys e values em bytes. No caso da
+estrutura inverted index do indexer estas estratégias (árvore de
+classes IndexerStrategy) transformam um termo em bytes e cada
+documento das posting lists também em bytes (Criam uma String
+com um determinado formato e devolvem os bytes dessas Strings).
+
+Como os ficheiros escritos são sequenciais, ou seja, para aceder
+a uma parte algures do ficheiro é necessário ler todo o ficheiro
+até à posição especifica. Para tentar reduzir a leitura a ficheiros
+a disco, cada estrutura interna do indexer vai ser escrito para
+vários ficheiros em que cada ficheiro tem um numero máximo de
+entries. Os nomes destes vários ficheiros é a concatenação do
+prefixo definido pelo utilizador mais um contador e a representação
+em string da primeira key guardada nesse ficheiro. O contador é
+usado pois no caso da indexação inicial do algoritmo SPIMI, vários
+ficheiros podem vir a ter o mesmo termo como primeiro termo.
+
+\subsubsection{indexer.io.loaders}
+\begin{figure}[H]
+  \center
+  \includegraphics[width=12cm]{packages_indexer_io_loaders.png}
+  \caption{Diagrama de classes do package \it indexer.io.loaders}
+\end{figure}
+
+Como os persisters escrevem entries uma a uma, para criar os loaders
+usamos iteradores para ler dos ficheiros. A classe base, BaseLoader,
+definea estrutura básica do iterador o qual as classes descendentes
+devem completar pois a leitura de entries depende do método de
+escrita e da estratégia usada. Criamos duas implementações de
+loader, ObjectStreamLoader que lê objetos entry e o ReaderLoader que
+lê linha a linha. Este último tem depois uma strategy que transforma
+um linha num objeto Map.Entry. Como neste assignment ainda não é
+necessário fazer load do index final, não foram implementados
+strategies especificas para cada indexer.
+
+\subsubsection{indexer.post\_indexing\_actions}
+
+\begin{figure}[H]
+  \center
+  \includegraphics[width=8cm]{packages_indexer_postindexingactions.png}
+  \caption{Diagrama de classes do package \it indexer.post\_indexing\_actions}
+\end{figure}
+
+Neste package encontram-se definidas ações para serem executadas
+sobre as vários entries da estrutura inverted index dos indexers,
+depois do processo de indexação e antes de a versão final ser
+persistida para disco. O objetivo principal é realizar cálculos
+que apenas podem ser feitos no fim de ter passado por todos os
+documentos do corpus, os quais são o calculo do idf de cada termo
+(depende do número total de documentos) e a normalização dos pesos
+dos documentos para cada posting list (apenas pode ser calculado
+quando a posting list estiver completa). De maneira a conseguir
+calcular estes pesos, durante a indexação é calculado a frequência
+de cada termo para cada documento, o que depois permite calcular
+o idf para cada termo e o peso do termo para cada documento.
 
 \newpage
 
 \section{Resultados}
 
-Resultados usando apenas o ficheiro 2004\_TREC\_ASCII\_MEDLINE\_1.gz \\
+Resultados usando os dois ficheiro 2004\_TREC\_ASCII\_MEDLINE gz,
+não fazendo nenhuma limitação da memória através da JVM,  no
+inicio da execução do programa havia por volta de 4GB de memória
+disponível, escritas e leituras  para o disco foram feitas sobre
+um HDD e o CPU i5-6300HQ CPU @ 2.30GHz.
 
-\begin{tabular}{| p{0.4\linewidth} | p{0.3\linewidth} | p{0.3\linewidth} |}
+\begin{tabular}{| p{0.4\linewidth} | p{0.2\linewidth} | p{0.2\linewidth} | p{0.2\linewidth} |}
         \hline
-        & \bf SimpleTokenizer & \bf AdvancedTokenizer \\ \hline
-        Tempo de indexação (mm:ss) & 3:13 & 2:09 \\ \hline
-        Tamanho do index em disco (MB) & 238 & 209 \\ \hline
-        Tamanho do vocabulário & 254914 & 427035\\ \hline
-        Primeiros 10 termos (em ordem
-        alfabética) que aparecem em
-        apenas um documento
-        &
-        aaaa \newline
-        aaaai \newline
-        aaaasf \newline
-        aaaat \newline
-        aaab \newline
-        aaact \newline
-        aaaction \newline
-        aaaga \newline
-        aaah \newline
-        aaahc
-        &
-        000case \newline
-        000diseasegen \newline
-        000for \newline
-        000g \newline
-        000gener \newline
-        000iu \newline
-        000kb \newline
-        000mer \newline
-        000meter \newline
-        000molecularweight
-        \\ \hline
-        Dez termos com a maior frequência nos documentos
-        &
-       and : 1014861 \newline
-       the : 1011732 \newline
-      with : 311814 \newline
-       for : 304357 \newline
-      from : 117323 \newline
-  patients : 112027 \newline
-     human : 106054 \newline
-      cell : 90208 \newline
-     cells : 85435 \newline
-     study : 84058
-     &
-      cell : 144666 \newline
-   patient : 137526 \newline
-    effect : 134752 \newline
-     human : 109488 \newline
-     studi : 106189 \newline
-       use : 87725 \newline
-     activ : 87489 \newline
-       rat : 81501 \newline
-    diseas : 79692 \newline
- treatment : 78885
-     \\
+        & \bf SPIMI com frequências
+        & \bf SPIMI com pesos
+        & \bf SPIMI com pesos e posições\\
+        \hline
+        Tempo de indexação (mm:ss) & 5:22 & 6:42 & 10:54 \\
+        \hline
+        Tamanho do index em disco (MB) & 1150 & 1296 & 1373 \\
+        \hline
+        Memória máxima usada (MB)* & 1457 & 1627 & 1597 \\
     \hline
 \end{tabular}
+
+* segundo o gráfico presente na aba Monitor do VisualVM
+
 \newpage
 
 \section{Anexos}

@@ -16,7 +16,7 @@ public interface BaseTerm {
     /**
      * Setter of the term
      *
-     * @return the term
+     * @param newTerm the new term
      */
     void setTerm(String newTerm);
 

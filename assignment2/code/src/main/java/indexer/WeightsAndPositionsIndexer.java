@@ -1,11 +1,13 @@
 package indexer;
 
 import indexer.post_indexing_actions.CalculateWeightsPostIndexingAction;
+import indexer.structures.DocumentWithInfo;
 import indexer.structures.TermWithInfo;
 import indexer.structures.aux_structs.DocumentWeightAndPositions;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -37,8 +39,24 @@ public class WeightsAndPositionsIndexer extends WeightsIndexerBase<DocumentWeigh
     }
 
     protected void insertDocument(int documentId, Map<String, Integer> frequencies) {
-        // TODO
-        // consult auxTermsPositions to create the structures to insert
+        frequencies.forEach((term, count) -> {
+            dummyTerm.setTerm(term);
+
+            List<DocumentWithInfo<DocumentWeightAndPositions>> postingList = invertedIndex.get(dummyTerm);
+
+            if (postingList == null) {
+                postingList = new LinkedList<>();
+                invertedIndex.put(new TermWithInfo<>(term, .0f), postingList);
+            }
+
+            postingList.add(new DocumentWithInfo<>(
+                documentId,
+                new DocumentWeightAndPositions(
+                    count,
+                    auxTermsPositions.get(term)
+                )
+            ));
+        });
     }
 
     /**

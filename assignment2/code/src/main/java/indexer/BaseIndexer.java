@@ -75,6 +75,9 @@ public abstract class BaseIndexer<T extends Block & BaseTerm, D extends Block & 
     /**
      * Constructor to define the a post indexing actions
      *  for the indexer
+     *
+     * @param postIndexingActions actions to apply after indexing
+     *  and before persisting
      */
     public BaseIndexer(PostIndexingActions<T, D> postIndexingActions) {
         this.invertedIndex = new HashMap<>();
