@@ -56,8 +56,7 @@ public class SimplePipeline<T extends Block & BaseTerm, D extends Block & BaseDo
         for (Document document : fileParser) {
             List<String> terms = tokenizer.tokenizeDocument(document.getToTokenize());
 
-            int docId = document.getId();
-            indexer.registerDocument(docId, document.getIdentifier());
+            int docId = indexer.registerDocument(document.getIdentifier());
 
             if (!terms.isEmpty()) {
                 indexer.indexTerms(docId, terms);

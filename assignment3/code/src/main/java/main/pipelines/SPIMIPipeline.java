@@ -95,8 +95,7 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
         for (Document document : fileParser) {
             List<String> terms = tokenizer.tokenizeDocument(document.getToTokenize());
 
-            int docId = document.getId();
-            indexer.registerDocument(docId, document.getIdentifier());
+            int docId = indexer.registerDocument(document.getIdentifier());
 
             if (!terms.isEmpty()) {
                 indexer.indexTerms(docId, terms);

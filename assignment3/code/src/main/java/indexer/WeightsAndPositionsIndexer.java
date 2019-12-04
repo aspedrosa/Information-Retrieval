@@ -1,9 +1,10 @@
 package indexer;
 
-import indexer.post_indexing_actions.CalculateWeightsPostIndexingAction;
+import indexer.post_indexing_actions.CalculateIDFAction;
 import indexer.structures.DocumentWithInfo;
 import indexer.structures.TermWithInfo;
 import indexer.structures.aux_structs.DocumentWeightAndPositions;
+import indexer.weights_calculation.CalculationsBase;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,35 +29,27 @@ public class WeightsAndPositionsIndexer extends WeightsIndexerBase<DocumentWeigh
      * Main constructor. Since is a specific
      * indexer, on the indexer it creates the necessary
      * classes specific to it
-     *
-     * @param postIndexingActions calculates the weights that can only be
-     *  calculated at the end of the indexing processing
      */
-    public WeightsAndPositionsIndexer(CalculateWeightsPostIndexingAction<DocumentWeightAndPositions> postIndexingActions) {
-        super(postIndexingActions);
+    public WeightsAndPositionsIndexer(CalculationsBase calculations) {
+        super(calculations);
         dummyTerm = new TermWithInfo<>();
         auxTermsPositions = new HashMap<>();
     }
 
-    protected void insertDocument(int documentId, Map<String, Integer> frequencies) {
-        frequencies.forEach((term, count) -> {
-            dummyTerm.setTerm(term);
+    @Override
+    public DocumentWithInfo<DocumentWeightAndPositions> createDocument(int documentId, DocumentWeightAndPositions weight) {
+        return new DocumentWithInfo<>(
+            documentId,
+            weight
+        );
+    }
 
-            List<DocumentWithInfo<DocumentWeightAndPositions>> postingList = invertedIndex.get(dummyTerm);
-
-            if (postingList == null) {
-                postingList = new LinkedList<>();
-                invertedIndex.put(new TermWithInfo<>(term, .0f), postingList);
-            }
-
-            postingList.add(new DocumentWithInfo<>(
-                documentId,
-                new DocumentWeightAndPositions(
-                    count,
-                    auxTermsPositions.get(term)
-                )
-            ));
-        });
+    @Override
+    public DocumentWeightAndPositions createDocumentWeight(String term, float weight) {
+        return new DocumentWeightAndPositions(
+            weight,
+            auxTermsPositions.get(term)
+        );
     }
 
     /**

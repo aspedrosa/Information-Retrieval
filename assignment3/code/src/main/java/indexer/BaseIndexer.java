@@ -32,6 +32,8 @@ public abstract class BaseIndexer<T extends Block & BaseTerm, D extends Block & 
 
     protected PostIndexingActions<T, D> postIndexingActions;
 
+    protected static int NUMBER_OF_DOCUMENTS = 0;
+
     /**
      * Used to improve some performance. Since blocks' hashcode()
      *  and compareto() methods only take in account the key
@@ -62,6 +64,10 @@ public abstract class BaseIndexer<T extends Block & BaseTerm, D extends Block & 
         return postIndexingActions;
     }
 
+    public static int getNumberOfDocuments() {
+        return NUMBER_OF_DOCUMENTS;
+    }
+
     /**
      * Default constructor.
      * Uses a HashMap for the inverted index
@@ -89,11 +95,14 @@ public abstract class BaseIndexer<T extends Block & BaseTerm, D extends Block & 
     /**
      * Associates a documentId to a string identifier
      *
-     * @param documentId of the document
      * @param identifier of the document (probably found on the content of the document)
      */
-    public final void registerDocument(int documentId, String identifier) {
-        documentRegistry.put(documentId, identifier);
+    public final int registerDocument(String identifier) {
+        int docId = ++NUMBER_OF_DOCUMENTS;
+
+        documentRegistry.put(docId, identifier);
+
+        return docId;
     }
 
     /**

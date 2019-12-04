@@ -1,9 +1,14 @@
 package indexer;
 
-import indexer.post_indexing_actions.CalculateWeightsPostIndexingAction;
+import indexer.post_indexing_actions.CalculateIDFAction;
 import indexer.structures.DocumentWithInfo;
 import indexer.structures.TermWithInfo;
 import indexer.structures.aux_structs.DocumentWeight;
+import indexer.weights_calculation.CalculationsBase;
+
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Indexes terms associating weights to terms
@@ -14,14 +19,44 @@ import indexer.structures.aux_structs.DocumentWeight;
  */
 public abstract class WeightsIndexerBase <V extends DocumentWeight> extends BaseIndexer<TermWithInfo<Float>, DocumentWithInfo<V>> {
 
+    private CalculationsBase calculations;
+
     /**
      * Main constructor
-     *
-     * @param postIndexingActions calculates the weights that can only be
-     *  calculated at the end of the indexing processing
      */
-    public WeightsIndexerBase(CalculateWeightsPostIndexingAction<V> postIndexingActions) {
-        super(postIndexingActions);
+    public WeightsIndexerBase(CalculationsBase calculations) {
+        super(new CalculateIDFAction<>());
+        this.calculations = calculations;
     }
+
+    @Override
+    protected final void insertDocument(int documentId, Map<String, Integer> frequencies) {
+        Map<String, Float> weights = calculations.preNormalization(frequencies);
+
+        weights.forEach((term, weight) -> {
+            dummyTerm.setTerm(term);
+
+            List<DocumentWithInfo<V>> postingList = invertedIndex.get(dummyTerm);
+
+            if (postingList == null) {
+                postingList = new LinkedList<>();
+                invertedIndex.put(new TermWithInfo<>(term, .0f), postingList);
+            }
+
+            postingList.add(
+                createDocument(
+                    documentId,
+                    createDocumentWeight(
+                        term,
+                        calculations.applyNormalization(weight)
+                    )
+                )
+            );
+        });
+    }
+
+    public abstract DocumentWithInfo<V> createDocument(int documentId, V weight);
+
+    public abstract V createDocumentWeight(String term, float weight);
 
 }

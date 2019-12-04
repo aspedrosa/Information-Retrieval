@@ -13,17 +13,6 @@ import java.util.List;
 public class Document {
 
     /**
-     * Id of this document
-     */
-    private int id;
-
-    /**
-     * Current document id. Works as a
-     *  serial primary key
-     */
-    private static int CURRENT_ID = 0;
-
-    /**
      * Unique identifier of the document to be associated
      *  to its id
      */
@@ -53,15 +42,6 @@ public class Document {
     }
 
     /**
-     * Getter of the id field
-     *
-     * @return document id
-     */
-    public int getId() {
-        return id;
-    }
-
-    /**
      * Getter of the identifier field
      *
      * @return document field
@@ -71,20 +51,9 @@ public class Document {
     }
 
     /**
-     * Getter for the CURRENT_ID field.
-     * Mainly used by CalculateWeightsPostIndexingAction classes
-     *
-     * @return current global of the documents
-     */
-    public static int getGlobalId() {
-        return CURRENT_ID;
-    }
-
-    /**
      * Default constructor
      */
     public Document() {
-        id = CURRENT_ID++;
         toTokenize = new LinkedList<>();
     }
 

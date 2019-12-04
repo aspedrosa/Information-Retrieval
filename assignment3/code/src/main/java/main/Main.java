@@ -12,20 +12,17 @@ import indexer.io.persisters.OutputStreamPersister;
 import indexer.io.persisters.strategies.FrequencyStrategy;
 import indexer.io.persisters.strategies.WeightsAndPositionStrategy;
 import indexer.io.persisters.strategies.WeightStrategy;
-import indexer.post_indexing_actions.LNC_LTC_Weighting;
-import indexer.structures.aux_structs.DocumentWeight;
 import indexer.WeightsAndPositionsIndexer;
 import indexer.WeightsIndexer;
+import indexer.weights_calculation.LNC;
 import main.pipelines.Pipeline;
 import main.pipelines.SPIMIPipeline;
 import parsers.corpus.CorpusReader;
 import parsers.corpus.ResolveByExtension;
-import parsers.documents.Document;
 import parsers.documents.TrecAsciiMedline2004DocParser;
 import parsers.files.TrecAsciiMedline2004FileParser;
 import tokenizer.AdvancedTokenizer;
 import tokenizer.BaseTokenizer;
-import tokenizer.SimpleTokenizer;
 import tokenizer.linguistic_rules.LinguisticRule;
 import tokenizer.linguistic_rules.MinLengthRule;
 import tokenizer.linguistic_rules.SnowballStemmerRule;
@@ -91,6 +88,7 @@ public class Main {
 
         // set relevant fields to parse from the TrecAsciiMedline2004's documents
         TrecAsciiMedline2004DocParser.addFieldToSave("TI");
+        TrecAsciiMedline2004DocParser.addFieldToSave("AB");
         TrecAsciiMedline2004DocParser.addFieldToSave("PMID");
 
         int entriesPerDocRegFile = parsedArgs.getInt("entriesPerDocRegFile");
@@ -111,7 +109,7 @@ public class Main {
         Pipeline pipeline;
         if (parsedArgs.getBoolean("useWeightsIndexer")) {
             WeightsIndexer indexer = new WeightsIndexer(
-                new LNC_LTC_Weighting<>()
+                new LNC()
             );
             System.out.println("Created weights indexer");
 
@@ -130,7 +128,7 @@ public class Main {
         }
         else if (parsedArgs.getBoolean("useWeightsAndPositionsIndexer")) {
             WeightsAndPositionsIndexer indexer = new WeightsAndPositionsIndexer(
-                new LNC_LTC_Weighting<>()
+                new LNC()
             );
             System.out.println("Created weights and positions indexer");
 
