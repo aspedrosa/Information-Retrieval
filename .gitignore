@@ -4,6 +4,7 @@ OneDrive_1_9-26-2019*
 RI_assignment*
 snowball_stopwords_EN.txt
 84732_85098.zip
+84732_85098/
 
 ## Indexing files
 finalIndex*
@@ -12,6 +13,9 @@ documentRegistry.bin
 
 ## VisualVm
 .attach_pid*
+
+## Jamm - Java Agent for Memory Measurements
+jamm-*.jar
 
 ## Maven
 target/

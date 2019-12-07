@@ -21,6 +21,13 @@
             <artifactId>argparse4j</artifactId>
             <version>0.8.1</version>
         </dependency>
+
+        <!-- for memory measurements -->
+        <dependency>
+            <groupId>com.github.jbellis</groupId>
+            <artifactId>jamm</artifactId>
+            <version>0.3.3</version>
+        </dependency>
     </dependencies>
 
     <properties>
@@ -45,7 +52,7 @@
                             <archive>
                             <manifest>
                                 <mainClass>
-                                    main.Main
+                                    mains.data_containers.Main
                                 </mainClass>
                             </manifest>
                             </archive>
