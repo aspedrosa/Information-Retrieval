@@ -20,10 +20,7 @@ import java.util.Map;
  */
 public abstract class BasePersister<K extends Comparable, V> implements Closeable {
 
-    /**
-     * Prefix for the files created by the persister
-     */
-    protected String prefixFilename;
+    protected String outputFolder;
 
     private MemoryMeter meter;
 
@@ -49,14 +46,12 @@ public abstract class BasePersister<K extends Comparable, V> implements Closeabl
      */
     protected List<String> firstKeys;
 
-    /**
-     * Main constructor
-     *
-     * @param prefixFilename prefix for the files created
-     */
-    public BasePersister(String prefixFilename, long limitFileSize) {
-        this.prefixFilename = prefixFilename;
-        this.limitFileSize = limitFileSize <= 0 ? -1 : 100 * 1024 * 1024;
+    private boolean duplicates;
+
+    public BasePersister(String outputFolder, boolean duplicates, long limitFileSize) {
+        this.outputFolder = outputFolder;
+        this.duplicates = duplicates;
+        this.limitFileSize = limitFileSize;
 
         this.currentFileSize = 0;
         this.filesCounter = 0;
@@ -65,13 +60,12 @@ public abstract class BasePersister<K extends Comparable, V> implements Closeabl
         this.meter = new MemoryMeter();
     }
 
-    /**
-     * Getter of the Strings used to create the output files
-     *
-     * @return firstKeys field
-     */
     public List<String> getFirstKeys() {
         return firstKeys;
+    }
+
+    public int getAmountOfFilesCreated() {
+        return filesCounter;
     }
 
     /**
@@ -103,10 +97,9 @@ public abstract class BasePersister<K extends Comparable, V> implements Closeabl
     public void persist(List<Map.Entry<K, V>> sortedEntries, boolean isLast) throws IOException {
         if (outputIsNull()) {
             String newFilename = String.format(
-                "%s_%s_%s",
-                prefixFilename,
-                filesCounter++,
-                sortedEntries.get(0).getKey().toString()
+                "%s%s",
+                outputFolder,
+                filesCounter++
             );
             createNewOutput(newFilename);
             firstKeys.add(sortedEntries.get(0).getKey().toString());
@@ -121,10 +114,9 @@ public abstract class BasePersister<K extends Comparable, V> implements Closeabl
                     close();
 
                     String newFilename = String.format(
-                        "%s_%s_%s",
-                        prefixFilename,
-                        filesCounter++,
-                        sortedEntries.get(i).getKey().toString()
+                        "%s%s",
+                        outputFolder,
+                        filesCounter++
                     );
                     createNewOutput(newFilename);
                     firstKeys.add(sortedEntries.get(i).getKey().toString());

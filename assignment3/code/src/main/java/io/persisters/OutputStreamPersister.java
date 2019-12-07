@@ -26,17 +26,11 @@ public class OutputStreamPersister<K extends Comparable, V> extends BasePersiste
      */
     private OutputStreamStrategy<K, V> strategy;
 
-    /**
-     * Main constructor
-     *
-     * @param prefixFilename prefix for the files created
-     * @param entriesLimitCount maximum of entries per file
-     * @param strategy Strategy to transform entries in byte[]
-     */
-    public OutputStreamPersister(String prefixFilename,
-                                 int entriesLimitCount,
+    public OutputStreamPersister(String outputFolder,
+                                 boolean duplicates,
+                                 int limitFileSize,
                                  OutputStreamStrategy<K, V> strategy) {
-        super(prefixFilename, entriesLimitCount);
+        super(outputFolder, duplicates, limitFileSize);
         this.strategy = strategy;
     }
 

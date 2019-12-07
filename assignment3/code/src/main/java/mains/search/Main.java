@@ -1,5 +1,9 @@
 package mains.search;
 
+import io.loaders.BaseLoader;
+import io.loaders.bulk_load.BulkLoader;
+import io.loaders.bulk_load.WeightsAndPositionsIndexerLoader;
+import io.loaders.bulk_load.WeightsIndexerLoader;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.impl.Arguments;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
@@ -13,6 +17,8 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.TreeSet;
 
 /**
@@ -54,7 +60,6 @@ public class Main {
         }
 
         TreeSet<String> indexesFileNames = getIndexFileNames(indexesFolder);
-
     }
 
     /**

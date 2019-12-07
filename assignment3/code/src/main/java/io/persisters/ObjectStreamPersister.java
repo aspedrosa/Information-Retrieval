@@ -1,7 +1,6 @@
 package io.persisters;
 
-import io.loaders.BaseLoader;
-import io.loaders.LazyLoader;
+import io.loaders.lazy_load.LazyLoader;
 
 import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;
@@ -22,14 +21,8 @@ public class ObjectStreamPersister<K extends Comparable, V> extends BasePersiste
      */
     private ObjectOutputStream currentOutput;
 
-    /**
-     * Main constructor
-     *
-     * @param prefixFilename prefix for the files created
-     * @param entriesLimitCount maximum of entries per file
-     */
-    public ObjectStreamPersister(String prefixFilename, int entriesLimitCount) {
-        super(prefixFilename, entriesLimitCount);
+    public ObjectStreamPersister(String outputFolder, boolean duplicates, int limitFileSize) {
+        super(outputFolder, duplicates, limitFileSize);
     }
 
     @Override

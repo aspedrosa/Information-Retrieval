@@ -1,4 +1,4 @@
-package io.loaders;
+package io.loaders.lazy_load;
 
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
@@ -35,6 +35,7 @@ public class ObjectStreamLoader<K, V> extends LazyLoader<K, V> {
             );
         } catch (IOException e) {
             e.printStackTrace();
+            System.exit(2);
         }
         ObjectInputStream input = tmp;
 

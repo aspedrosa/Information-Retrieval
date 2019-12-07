@@ -21,6 +21,7 @@ import parsers.corpus.CorpusReader;
 import parsers.corpus.ResolveByExtension;
 import parsers.documents.TrecAsciiMedline2004DocParser;
 import parsers.files.TrecAsciiMedline2004FileParser;
+import tokenizer.AdvancedTokenizer;
 import tokenizer.BaseTokenizer;
 import tokenizer.SimpleTokenizer;
 import tokenizer.linguistic_rules.LinguisticRule;
@@ -29,6 +30,7 @@ import tokenizer.linguistic_rules.SnowballStemmerRule;
 import tokenizer.linguistic_rules.StopWordsRule;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStreamReader;
@@ -90,8 +92,8 @@ public class Main {
         TrecAsciiMedline2004DocParser.addFieldToSave("TI");
         TrecAsciiMedline2004DocParser.addFieldToSave("PMID");
 
-        int entriesPerDocRegFile = parsedArgs.getInt("entriesPerDocRegFile");
-        int termsPerFinalIndexFile = parsedArgs.getInt("termsPerFinalIndexFile");
+        int maxDocRegFileSize = parsedArgs.getInt("maxDocRegFileSize") * 1024 * 1024;
+        int maxFinalIndexFileSize = parsedArgs.getInt("maxFinalIndexFileSize") * 1024 * 1024;
 
         // create an advanced tokenizer
         Set<String> stopWords = readStopWordsFile(parsedArgs.getString("stopWordsFilename"));
@@ -105,27 +107,34 @@ public class Main {
 
         System.out.println("Created the Advanced tokenizer");
 
-        Pipeline pipeline;
-        if (parsedArgs.getBoolean("useWeightsIndexer")) {
-            WeightsIndexer indexer = new WeightsIndexer(
-                new LNC()
-            );
-            System.out.println("Created weights indexer");
-
-            pipeline = new SPIMIPipeline<>(
-                tokenizer,
-                indexer,
-                corpusReader,
-                new ObjectStreamPersister<>("documentRegistry", entriesPerDocRegFile),
-                new OutputStreamPersister<>(
-                    parsedArgs.getString("indexOutputFilename"),
-                    termsPerFinalIndexFile,
-                    new WeightStrategy()
-                ),
-                parsedArgs.getFloat("maxLoadFactor")
-            );
+        // create folders to save the data
+        String outputFolder = parsedArgs.getString("outputFolder") + "/";
+        String documentRegistryFolder = outputFolder + "documentRegistry/";
+        String indexerFolder = outputFolder + "indexer/";
+        String tmpFolder = outputFolder + "tmp/";
+        String[] dataFoldersName = new String[] {documentRegistryFolder, indexerFolder, tmpFolder};
+        for (String folder : dataFoldersName) {
+            File dataFolder = new File(folder);
+            dataFolder.mkdirs();
         }
-        else if (parsedArgs.getBoolean("useWeightsAndPositionsIndexer")) {
+
+        // warn if data folders aren't empty
+        for (String folder : dataFoldersName) {
+            if (folder.contains("tmp")){
+                continue;
+            }
+
+            try {
+                if (Files.list(Paths.get(folder)).count() > 0) {
+                    System.err.println("WARNING data folder " + folder + " not empty");
+                }
+            } catch (IOException e) {
+                // on the previously code block this are created so this exception can't happen
+            }
+        }
+
+        Pipeline pipeline;
+        if (parsedArgs.getBoolean("useWeightsAndPositionsIndexer")) {
             WeightsAndPositionsIndexer indexer = new WeightsAndPositionsIndexer(
                 new LNC()
             );
@@ -135,28 +144,35 @@ public class Main {
                 tokenizer,
                 indexer,
                 corpusReader,
-                new ObjectStreamPersister<>("documentRegistry", entriesPerDocRegFile),
+                tmpFolder,
+                new ObjectStreamPersister<>(documentRegistryFolder, false, maxDocRegFileSize),
                 new OutputStreamPersister<>(
-                    parsedArgs.getString("indexOutputFilename"),
-                    termsPerFinalIndexFile,
+                    indexerFolder,
+                    false,
+                    maxFinalIndexFileSize,
                     new WeightsAndPositionStrategy()
                 ),
                 parsedArgs.getFloat("maxLoadFactor")
             );
+
         }
         else {
-            FrequencyIndexer indexer = new FrequencyIndexer();
-            System.out.println("Created frequency indexer");
+            WeightsIndexer indexer = new WeightsIndexer(
+                new LNC()
+            );
+            System.out.println("Created weights indexer");
 
             pipeline = new SPIMIPipeline<>(
                 tokenizer,
                 indexer,
                 corpusReader,
-                new ObjectStreamPersister<>("documentRegistry", entriesPerDocRegFile),
+                tmpFolder,
+                new ObjectStreamPersister<>(documentRegistryFolder, false, maxDocRegFileSize),
                 new OutputStreamPersister<>(
-                    parsedArgs.getString("indexOutputFilename"),
-                    termsPerFinalIndexFile,
-                    new FrequencyStrategy()
+                    indexerFolder,
+                    false,
+                    maxFinalIndexFileSize,
+                    new WeightStrategy()
                 ),
                 parsedArgs.getFloat("maxLoadFactor")
             );
@@ -228,15 +244,9 @@ public class Main {
             .help("Path to folder containing files with documents to index");
 
         argsParser
-            .addArgument("indexOutputFilename")
+            .addArgument("outputFolder")
             .type(String.class)
-            .help("Name of the file to which the index will be stored");
-
-        argsParser
-            .addArgument("-w")
-            .dest("useWeightsIndexer")
-            .action(Arguments.storeTrue())
-            .help("Uses the indexer that calculates weight terms");
+            .help("TODO");
 
         argsParser
             .addArgument("-p")
@@ -255,24 +265,20 @@ public class Main {
                 "Should be a number between 0 and 1. Default 0.80");
 
         argsParser
-            .addArgument("--terms-per-final-index-file")
-            .dest("termsPerFinalIndexFile")
+            .addArgument("--max-final-index-file-size")
+            .dest("maxFinalIndexFileSize")
             .type(Integer.class)
             .action(Arguments.store())
-            .setDefault(100000)
-            .help("number of terms per final index file. If" +
-                " a number lower than 1 is received, all the index" +
-                " term will be stored on the same file. Default 100000");
+            .setDefault(100)
+            .help("TODO");
 
         argsParser
-            .addArgument("--entries-per-doc-reg-file")
-            .dest("entriesPerDocRegFile")
+            .addArgument("--max-doc-reg-file-size")
+            .dest("maxDocRegFileSize")
             .type(Integer.class)
             .action(Arguments.store())
-            .setDefault(1000000)
-            .help("number of entries per document registry file. If" +
-                " a number lower than 1 is received, all the entries" +
-                " will be stored on the same file. Default 1000000");
+            .setDefault(100)
+            .help("TODO");
 
         Namespace parsedArgs = null;
         try {
@@ -286,12 +292,6 @@ public class Main {
         if (maxLoadFactor != null && (maxLoadFactor < 0 || maxLoadFactor > 1)) {
             System.err.println("ERROR maximum load factor should be a floating point" +
                 " between 0 and 1");
-            System.exit(1);
-        }
-
-        if (parsedArgs.getBoolean("useWeightsIndexer") &&
-            parsedArgs.getBoolean("useWeightsAndPositionsIndexer")) {
-            System.err.println("Define only one or none type of indexer (Default FrequencyIndexer)");
             System.exit(1);
         }
 

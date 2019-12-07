@@ -1,4 +1,6 @@
-package io.loaders;
+package io.loaders.lazy_load;
+
+import io.loaders.BaseLoader;
 
 import java.io.Serializable;
 import java.util.Iterator;
@@ -23,41 +25,6 @@ public abstract class LazyLoader<K, V> implements BaseLoader<K, V> {
      * @return an iterator to read from a file with entries
      */
     public abstract Iterator<Map.Entry<K, V>> load(String filename);
-
-    /**
-     * Entry to store indexer's internal maps entries, hence
-     *  the Serializable extension
-     *
-     * @param <K> type of the keys
-     * @param <V> type of the values
-     */
-    public static class Entry<K, V> implements Map.Entry<K, V>, Serializable {
-
-        private K key;
-
-        private V value;
-
-        public Entry(K key, V value) {
-            this.key = key;
-            this.value = value;
-        }
-
-        @Override
-        public K getKey() {
-            return key;
-        }
-
-        @Override
-        public V getValue() {
-            return value;
-        }
-
-        @Override
-        public V setValue(V v) {
-            this.value = v;
-            return v;
-        }
-    }
 
     /**
      * Iterator to read from a file with entries persisted

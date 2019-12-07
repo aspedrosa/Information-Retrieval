@@ -2,8 +2,8 @@ package mains.indexing.pipelines;
 
 import data_containers.indexer.BaseIndexer;
 import data_containers.indexer.post_indexing_actions.PostIndexingActions;
-import io.loaders.LazyLoader;
-import io.loaders.ObjectStreamLoader;
+import io.loaders.lazy_load.LazyLoader;
+import io.loaders.lazy_load.ObjectStreamLoader;
 import io.persisters.BasePersister;
 import io.persisters.ObjectStreamPersister;
 import data_containers.indexer.structures.BaseDocument;
@@ -14,6 +14,7 @@ import parsers.documents.Document;
 import parsers.files.FileParser;
 import tokenizer.BaseTokenizer;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -33,11 +34,6 @@ import java.util.Map;
  * @param <D> type of the documents
  */
 public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDocument> extends Pipeline<T, D> {
-
-    /**
-     * Prefix for the temporary indexing files
-     */
-    private static final String indexingTmpFilePrefix = "indexingTmpFile";
 
     /**
      * Maximum memory load factor
@@ -60,6 +56,8 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
      */
     private boolean wroteToDisk;
 
+    private String tmpFolder;
+
     /**
      * Main constructor
      *
@@ -75,13 +73,15 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
     public SPIMIPipeline(BaseTokenizer tokenizer,
                          BaseIndexer<T, D> indexer,
                          CorpusReader corpusReader,
+                         String tmpFolder,
                          BasePersister<Integer, String> docRegistryPersister,
                          BasePersister<T, List<D>> finalIndexPersister,
                          float maxLoadFactor) {
         super(tokenizer, indexer, corpusReader, finalIndexPersister, docRegistryPersister);
         this.maxLoadFactor = maxLoadFactor;
+        this.tmpFolder = tmpFolder;
 
-        this.indexingTmpFilesPersister = new ObjectStreamPersister<>(indexingTmpFilePrefix, -1);
+        this.indexingTmpFilesPersister = new ObjectStreamPersister<>(tmpFolder, true, -1);
         this.indexingTmpFilesLoader = new ObjectStreamLoader<>();
     }
 
@@ -177,9 +177,8 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
         // iterators used to retrieve the entries from each temporary file
         List<Iterator<Map.Entry<T, List<D>>>> tmpFilesReaders = new ArrayList<>();
 
-        List<String> firstKeys = indexingTmpFilesPersister.getFirstKeys();
-        for (int i = 0; i < firstKeys.size(); i++) {
-            String filename = String.format("%s_%s_%s", indexingTmpFilePrefix, i, firstKeys.get(i));
+        for (int i = 0; i < indexingTmpFilesPersister.getAmountOfFilesCreated(); i++) {
+            String filename = String.format("%s%s", tmpFolder, i);
             tmpFilesReaders.add(
                 indexingTmpFilesLoader.load(filename)
             );
@@ -286,17 +285,6 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
         }
 
         System.gc();
-
-        // remove temporary indexing files
-        for (int i = 0; i < firstKeys.size(); i++) {
-            String filename = String.format("%s_%d_%s", indexingTmpFilePrefix, i, firstKeys.get(i));
-
-            try {
-                Files.delete(Paths.get(filename));
-            } catch (IOException e) {
-                System.err.println("WARNING unable to remove indexing temporary file " + filename);
-            }
-        }
     }
 
     /**
@@ -403,14 +391,12 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
             //  if they are lower than the first on the other posting lists
             //  that had documents with higher document ids
             int furtherIdxWhereDocIdStillLowest = 0;
-aa:         for (int i = 1; i < postListWithLowestDocId.size(); furtherIdxWhereDocIdStillLowest = i++) {
+for1:         for (int i = 1; i < postListWithLowestDocId.size(); furtherIdxWhereDocIdStillLowest = i++) {
                 // for each posting list to merge
                 for (Map.Entry<T, List<D>> entry : lowerCommonTerms) {
 
-                    if (entry.getValue() != postListWithLowestDocId) {
-                        if (entry.getValue().get(0).getDocId() < lowestDocId) {
-                            break aa;
-                        }
+                    if (entry.getValue() != postListWithLowestDocId && entry.getValue().get(0).getDocId() < lowestDocId) {
+                        break for1;
                     }
                 }
             }

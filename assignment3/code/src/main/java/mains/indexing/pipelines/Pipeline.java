@@ -108,6 +108,11 @@ public abstract class Pipeline<T extends Block & BaseTerm, D extends Block & Bas
         persistIndex();
 
         System.out.println("Finished storing index to disk in " + (System.currentTimeMillis() - begin));
+        System.out.println("Started creating metadata file");
+
+        // create metadata file
+
+        System.out.println("Finished creating metadata file");
     }
 
     /**
@@ -129,5 +134,8 @@ public abstract class Pipeline<T extends Block & BaseTerm, D extends Block & Bas
      *  structures.
      */
     public abstract void persistIndex();
+
+    public void createMetadataFile() {
+    }
 
 }
