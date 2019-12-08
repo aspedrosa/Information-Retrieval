@@ -21,6 +21,10 @@ public class DocumentRegistry {
         return NUMBER_OF_DOCUMENTS;
     }
 
+    public static void setNumberOfDocuments(int newNumberOfDocuments) {
+        NUMBER_OF_DOCUMENTS = newNumberOfDocuments;
+    }
+
     /**
      * Getter for the documentIdentification
      *

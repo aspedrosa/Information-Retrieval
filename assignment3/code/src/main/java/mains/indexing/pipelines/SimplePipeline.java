@@ -2,7 +2,8 @@ package mains.indexing.pipelines;
 
 import data_containers.indexer.BaseIndexer;
 import data_containers.indexer.post_indexing_actions.PostIndexingActions;
-import io.persisters.BasePersister;
+import io.metadata.MetadataManager;
+import io.data_containers.persisters.BasePersister;
 import data_containers.indexer.structures.BaseDocument;
 import data_containers.indexer.structures.BaseTerm;
 import data_containers.indexer.structures.Block;
@@ -36,8 +37,9 @@ public class SimplePipeline<T extends Block & BaseTerm, D extends Block & BaseDo
                           BaseIndexer<T, D> indexer,
                           CorpusReader corpusReader,
                           BasePersister<T, List<D>> finalIndexPersister,
-                          BasePersister<Integer, String> docRegistryPersister) {
-        super(tokenizer, indexer, corpusReader, finalIndexPersister, docRegistryPersister);
+                          BasePersister<Integer, String> docRegistryPersister,
+                          MetadataManager metadataManager) {
+        super(tokenizer, indexer, corpusReader, finalIndexPersister, docRegistryPersister, metadataManager);
     }
 
     /**

@@ -5,6 +5,9 @@ import data_containers.indexer.structures.TermWithInfo;
 import data_containers.indexer.structures.aux_structs.DocumentWeight;
 import data_containers.indexer.weights_calculation.CalculationsBase;
 
+import java.util.List;
+import java.util.Map;
+
 public class WeightsIndexer extends WeightsIndexerBase<DocumentWeight> {
 
     /**
@@ -12,6 +15,14 @@ public class WeightsIndexer extends WeightsIndexerBase<DocumentWeight> {
      */
     public WeightsIndexer(CalculationsBase calculations) {
         super(calculations);
+        this.dummyTerm = new TermWithInfo<>();
+    }
+
+    public WeightsIndexer(
+        CalculationsBase calculations,
+        Map<TermWithInfo<Float>, List<DocumentWithInfo<DocumentWeight>>> loadedIndex
+        ) {
+        super(calculations, loadedIndex);
         this.dummyTerm = new TermWithInfo<>();
     }
 
@@ -28,5 +39,11 @@ public class WeightsIndexer extends WeightsIndexerBase<DocumentWeight> {
         return new DocumentWeight(
             weight
         );
+    }
+
+    @Override
+    public BaseIndexer<TermWithInfo<Float>, DocumentWithInfo<DocumentWeight>> createIndexer(
+        Map<TermWithInfo<Float>, List<DocumentWithInfo<DocumentWeight>>> loadedIndex) {
+        return new WeightsIndexer(this.calculations, loadedIndex);
     }
 }

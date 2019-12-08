@@ -19,13 +19,20 @@ import java.util.Map;
  */
 public abstract class WeightsIndexerBase <V extends DocumentWeight> extends BaseIndexer<TermWithInfo<Float>, DocumentWithInfo<V>> {
 
-    private CalculationsBase calculations;
+    protected CalculationsBase calculations;
 
     /**
      * Main constructor
      */
     public WeightsIndexerBase(CalculationsBase calculations) {
         super(new CalculateIDFAction<>());
+        this.calculations = calculations;
+    }
+
+    protected WeightsIndexerBase(
+        CalculationsBase calculations,
+        Map<TermWithInfo<Float>, List<DocumentWithInfo<V>>> loadedIndex) {
+        super(new CalculateIDFAction<>(), loadedIndex);
         this.calculations = calculations;
     }
 

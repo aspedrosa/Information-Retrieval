@@ -1,17 +1,16 @@
 package mains.indexing;
 
+import io.metadata.BinaryMetadataManager;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.impl.Arguments;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
 
-import data_containers.indexer.FrequencyIndexer;
-import io.persisters.ObjectStreamPersister;
-import io.persisters.OutputStreamPersister;
-import io.persisters.strategies.FrequencyStrategy;
-import io.persisters.strategies.WeightsAndPositionStrategy;
-import io.persisters.strategies.WeightStrategy;
+import io.data_containers.persisters.ObjectStreamPersister;
+import io.data_containers.persisters.OutputStreamPersister;
+import io.data_containers.persisters.strategies.WeightsAndPositionStrategy;
+import io.data_containers.persisters.strategies.WeightStrategy;
 import data_containers.indexer.WeightsAndPositionsIndexer;
 import data_containers.indexer.WeightsIndexer;
 import data_containers.indexer.weights_calculation.LNC;
@@ -21,7 +20,6 @@ import parsers.corpus.CorpusReader;
 import parsers.corpus.ResolveByExtension;
 import parsers.documents.TrecAsciiMedline2004DocParser;
 import parsers.files.TrecAsciiMedline2004FileParser;
-import tokenizer.AdvancedTokenizer;
 import tokenizer.BaseTokenizer;
 import tokenizer.SimpleTokenizer;
 import tokenizer.linguistic_rules.LinguisticRule;
@@ -93,7 +91,7 @@ public class Main {
         TrecAsciiMedline2004DocParser.addFieldToSave("PMID");
 
         int maxDocRegFileSize = parsedArgs.getInt("maxDocRegFileSize") * 1024 * 1024;
-        int maxFinalIndexFileSize = parsedArgs.getInt("maxFinalIndexFileSize") * 1024 * 1024;
+        int maxIndexFileSize = parsedArgs.getInt("maxIndexFileSize") * 1024 * 1024;
 
         // create an advanced tokenizer
         Set<String> stopWords = readStopWordsFile(parsedArgs.getString("stopWordsFilename"));
@@ -109,6 +107,7 @@ public class Main {
 
         // create folders to save the data
         String outputFolder = parsedArgs.getString("outputFolder") + "/";
+        String metadataFile = outputFolder + "METADATA";
         String documentRegistryFolder = outputFolder + "documentRegistry/";
         String indexerFolder = outputFolder + "indexer/";
         String tmpFolder = outputFolder + "tmp/";
@@ -149,9 +148,10 @@ public class Main {
                 new OutputStreamPersister<>(
                     indexerFolder,
                     false,
-                    maxFinalIndexFileSize,
+                    maxIndexFileSize,
                     new WeightsAndPositionStrategy()
                 ),
+                new BinaryMetadataManager(metadataFile),
                 parsedArgs.getFloat("maxLoadFactor")
             );
 
@@ -171,9 +171,10 @@ public class Main {
                 new OutputStreamPersister<>(
                     indexerFolder,
                     false,
-                    maxFinalIndexFileSize,
+                    maxIndexFileSize,
                     new WeightStrategy()
                 ),
+                new BinaryMetadataManager(metadataFile),
                 parsedArgs.getFloat("maxLoadFactor")
             );
         }
@@ -187,7 +188,7 @@ public class Main {
      * @param filePath path to file containing the stop words
      * @return stop words
      */
-    private static Set<String> readStopWordsFile(String filePath) {
+    public static Set<String> readStopWordsFile(String filePath) {
         InputStreamReader input = null;
         try {
             input = new InputStreamReader(
@@ -265,8 +266,8 @@ public class Main {
                 "Should be a number between 0 and 1. Default 0.80");
 
         argsParser
-            .addArgument("--max-final-index-file-size")
-            .dest("maxFinalIndexFileSize")
+            .addArgument("--max-index-file-size")
+            .dest("maxIndexFileSize")
             .type(Integer.class)
             .action(Arguments.store())
             .setDefault(100)

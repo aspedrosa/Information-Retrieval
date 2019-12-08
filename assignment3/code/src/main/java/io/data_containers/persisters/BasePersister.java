@@ -1,4 +1,4 @@
-package io.persisters;
+package io.data_containers.persisters;
 
 import org.github.jamm.MemoryMeter;
 

@@ -2,7 +2,8 @@ package mains.indexing.pipelines;
 
 import data_containers.DocumentRegistry;
 import data_containers.indexer.BaseIndexer;
-import io.persisters.BasePersister;
+import io.metadata.MetadataManager;
+import io.data_containers.persisters.BasePersister;
 import data_containers.indexer.structures.BaseDocument;
 import data_containers.indexer.structures.BaseTerm;
 import data_containers.indexer.structures.Block;
@@ -58,6 +59,8 @@ public abstract class Pipeline<T extends Block & BaseTerm, D extends Block & Bas
      */
     protected BasePersister<Integer, String> documentRegistryPersister;
 
+    private MetadataManager metadataManager;
+
     /**
      * Main constructor.
      *
@@ -72,12 +75,14 @@ public abstract class Pipeline<T extends Block & BaseTerm, D extends Block & Bas
                     BaseIndexer<T, D> indexer,
                     CorpusReader corpusReader,
                     BasePersister<T, List<D>> finalIndexPersister,
-                    BasePersister<Integer, String> docRegistryPersister) {
+                    BasePersister<Integer, String> docRegistryPersister,
+                    MetadataManager metadataManager) {
         this.tokenizer = tokenizer;
         this.indexer = indexer;
         this.corpusReader = corpusReader;
         this.finalIndexPersister = finalIndexPersister;
         this.documentRegistryPersister = docRegistryPersister;
+        this.metadataManager = metadataManager;
 
         this.documentRegistry = new DocumentRegistry();
     }
@@ -111,6 +116,16 @@ public abstract class Pipeline<T extends Block & BaseTerm, D extends Block & Bas
         System.out.println("Started creating metadata file");
 
         // create metadata file
+        try {
+            metadataManager.persistMetadata(
+                documentRegistryPersister.getFirstKeys(),
+                finalIndexPersister.getFirstKeys()
+            );
+        } catch (IOException e) {
+            System.err.println("ERROR while persisting metadata file");
+            e.printStackTrace();
+            System.exit(2);
+        }
 
         System.out.println("Finished creating metadata file");
     }

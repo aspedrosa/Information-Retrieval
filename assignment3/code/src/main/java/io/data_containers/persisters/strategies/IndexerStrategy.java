@@ -1,4 +1,4 @@
-package io.persisters.strategies;
+package io.data_containers.persisters.strategies;
 
 import data_containers.indexer.structures.BaseDocument;
 import data_containers.indexer.structures.BaseTerm;

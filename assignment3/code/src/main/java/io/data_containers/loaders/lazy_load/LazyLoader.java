@@ -1,8 +1,7 @@
-package io.loaders.lazy_load;
+package io.data_containers.loaders.lazy_load;
 
-import io.loaders.BaseLoader;
+import io.data_containers.loaders.BaseLoader;
 
-import java.io.Serializable;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;

@@ -34,6 +34,14 @@ public class WeightsAndPositionsIndexer extends WeightsIndexerBase<DocumentWeigh
         auxTermsPositions = new HashMap<>();
     }
 
+    protected WeightsAndPositionsIndexer(
+        CalculationsBase calculations,
+        Map<TermWithInfo<Float>, List<DocumentWithInfo<DocumentWeightAndPositions>>> loadedIndex
+        ) {
+        super(calculations, loadedIndex);
+        dummyTerm = new TermWithInfo<>();
+    }
+
     @Override
     public DocumentWithInfo<DocumentWeightAndPositions> createDocument(int documentId, DocumentWeightAndPositions weight) {
         return new DocumentWithInfo<>(
@@ -48,6 +56,12 @@ public class WeightsAndPositionsIndexer extends WeightsIndexerBase<DocumentWeigh
             weight,
             auxTermsPositions.get(term)
         );
+    }
+
+    @Override
+    public BaseIndexer<TermWithInfo<Float>, DocumentWithInfo<DocumentWeightAndPositions>> createIndexer(
+        Map<TermWithInfo<Float>, List<DocumentWithInfo<DocumentWeightAndPositions>>> loadedIndex) {
+        return new WeightsAndPositionsIndexer(this.calculations, loadedIndex);
     }
 
     /**

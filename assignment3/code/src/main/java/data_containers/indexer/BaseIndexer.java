@@ -16,7 +16,8 @@ import java.util.Map;
  * @param <T> Type of the terms
  * @param <D> Type of the documents
  */
-public abstract class BaseIndexer<T extends Block & BaseTerm, D extends Block & BaseDocument> {
+public abstract class BaseIndexer<T extends Block & BaseTerm, D extends Block & BaseDocument>
+    implements IndexerProvider<T, D> {
 
     /**
      * The main data structure of the index.
@@ -57,6 +58,11 @@ public abstract class BaseIndexer<T extends Block & BaseTerm, D extends Block & 
         postIndexingActions = null;
     }
 
+    protected BaseIndexer(Map<T, List<D>> loadedIndex) {
+        invertedIndex = loadedIndex;
+        postIndexingActions = null;
+    }
+
     /**
      * Constructor to define the a post indexing actions
      *  for the indexer
@@ -66,6 +72,11 @@ public abstract class BaseIndexer<T extends Block & BaseTerm, D extends Block & 
      */
     public BaseIndexer(PostIndexingActions<T, D> postIndexingActions) {
         this.invertedIndex = new HashMap<>();
+        this.postIndexingActions = postIndexingActions;
+    }
+
+    public BaseIndexer(PostIndexingActions<T, D> postIndexingActions, Map<T, List<D>> loadedIndex) {
+        this.invertedIndex = loadedIndex;
         this.postIndexingActions = postIndexingActions;
     }
 
@@ -102,6 +113,12 @@ public abstract class BaseIndexer<T extends Block & BaseTerm, D extends Block & 
      * @param frequencies frequencies for each term present on the document
      */
     protected abstract void insertDocument(int documentId, Map<String, Integer> frequencies);
+
+    public List<D> getPostingList(String term) {
+        dummyTerm.setTerm(term);
+
+        return invertedIndex.get(dummyTerm);
+    }
 
     /**
      * Resets the indexer internal structures. Used mainly to get same memory back.

@@ -19,7 +19,18 @@ public class FrequencyIndexer extends BaseIndexer<SimpleTerm, DocumentWithInfo<I
      */
     public FrequencyIndexer() {
         super();
-        dummyTerm = new SimpleTerm(null);
+        dummyTerm = new SimpleTerm();
+    }
+
+    public FrequencyIndexer(Map<SimpleTerm, List<DocumentWithInfo<Integer>>> loadedIndex) {
+        super(loadedIndex);
+        dummyTerm = new SimpleTerm();
+    }
+
+    @Override
+    public BaseIndexer<SimpleTerm, DocumentWithInfo<Integer>> createIndexer(
+        Map<SimpleTerm, List<DocumentWithInfo<Integer>>> loadedIndex) {
+        return new FrequencyIndexer(loadedIndex);
     }
 
     /**

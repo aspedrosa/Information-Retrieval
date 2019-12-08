@@ -2,10 +2,11 @@ package mains.indexing.pipelines;
 
 import data_containers.indexer.BaseIndexer;
 import data_containers.indexer.post_indexing_actions.PostIndexingActions;
-import io.loaders.lazy_load.LazyLoader;
-import io.loaders.lazy_load.ObjectStreamLoader;
-import io.persisters.BasePersister;
-import io.persisters.ObjectStreamPersister;
+import io.metadata.MetadataManager;
+import io.data_containers.loaders.lazy_load.LazyLoader;
+import io.data_containers.loaders.lazy_load.ObjectStreamLoader;
+import io.data_containers.persisters.BasePersister;
+import io.data_containers.persisters.ObjectStreamPersister;
 import data_containers.indexer.structures.BaseDocument;
 import data_containers.indexer.structures.BaseTerm;
 import data_containers.indexer.structures.Block;
@@ -14,10 +15,7 @@ import parsers.documents.Document;
 import parsers.files.FileParser;
 import tokenizer.BaseTokenizer;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -76,8 +74,9 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
                          String tmpFolder,
                          BasePersister<Integer, String> docRegistryPersister,
                          BasePersister<T, List<D>> finalIndexPersister,
+                         MetadataManager metadataManager,
                          float maxLoadFactor) {
-        super(tokenizer, indexer, corpusReader, finalIndexPersister, docRegistryPersister);
+        super(tokenizer, indexer, corpusReader, finalIndexPersister, docRegistryPersister, metadataManager);
         this.maxLoadFactor = maxLoadFactor;
         this.tmpFolder = tmpFolder;
 

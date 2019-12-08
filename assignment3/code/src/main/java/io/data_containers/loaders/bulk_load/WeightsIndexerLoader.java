@@ -1,10 +1,11 @@
-package io.loaders.bulk_load;
+package io.data_containers.loaders.bulk_load;
 
 import data_containers.indexer.structures.DocumentWithInfo;
 import data_containers.indexer.structures.TermWithInfo;
 import data_containers.indexer.structures.aux_structs.DocumentWeight;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -14,6 +15,10 @@ import java.util.stream.Stream;
 public class WeightsIndexerLoader extends LinesLoader<TermWithInfo<Float>, List<DocumentWithInfo<DocumentWeight>>> {
 
     private static final Pattern separatorsRegex = Pattern.compile("[:;]");
+
+    public WeightsIndexerLoader(String folder) {
+        super(folder);
+    }
 
     @Override
     public Map<TermWithInfo<Float>, List<DocumentWithInfo<DocumentWeight>>> parseLines(Stream<String> lines) {
@@ -45,7 +50,7 @@ public class WeightsIndexerLoader extends LinesLoader<TermWithInfo<Float>, List<
             return entry;
         }).collect(Collectors.toMap(
             Entry::getKey,
-            Entry::getValue
+           Entry::getValue
         ));
     }
 

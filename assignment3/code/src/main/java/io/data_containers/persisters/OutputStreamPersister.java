@@ -1,6 +1,6 @@
-package io.persisters;
+package io.data_containers.persisters;
 
-import io.persisters.strategies.OutputStreamStrategy;
+import io.data_containers.persisters.strategies.OutputStreamStrategy;
 
 import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;

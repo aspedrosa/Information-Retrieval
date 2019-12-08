@@ -1,4 +1,4 @@
-package io.loaders;
+package io.data_containers.loaders;
 
 import java.io.Serializable;
 import java.util.Map;

@@ -1,6 +1,6 @@
-package io.persisters;
+package io.data_containers.persisters;
 
-import io.loaders.lazy_load.LazyLoader;
+import io.data_containers.loaders.lazy_load.LazyLoader;
 
 import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;

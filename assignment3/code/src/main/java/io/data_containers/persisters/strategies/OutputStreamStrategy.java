@@ -1,4 +1,4 @@
-package io.persisters.strategies;
+package io.data_containers.persisters.strategies;
 
 import java.io.OutputStream;
 
