@@ -1,16 +1,23 @@
 package searcher;
 
+import data_containers.DocumentRegistry;
 import data_containers.indexer.BaseIndexer;
 import data_containers.indexer.IndexerProvider;
+import data_containers.indexer.WeightsIndexerBase;
 import data_containers.indexer.structures.BaseDocument;
 import data_containers.indexer.structures.BaseTerm;
 import data_containers.indexer.structures.Block;
+import data_containers.indexer.structures.DocumentWithInfo;
+import data_containers.indexer.structures.TermWithInfo;
+import data_containers.indexer.structures.aux_structs.DocumentWeight;
+import data_containers.indexer.weights_calculation.searching.CalculationsBase;
 import io.data_containers.loaders.bulk_load.BulkLoader;
 import tokenizer.BaseTokenizer;
 
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -22,11 +29,13 @@ public class Searcher<T extends Block & BaseTerm, D extends Block & BaseDocument
 
     private BaseTokenizer tokenizer;
 
+    private CalculationsBase calculations;
+
     private TreeMap<Integer, String> docRegMetadata;
 
     private TreeMap<String, String> indexerMetadata;
 
-    private TreeMap<Integer, BaseIndexer<T, D>> docRegsInMemory;
+    private TreeMap<Integer, DocumentRegistry> docRegsInMemory;
 
     private TreeMap<String, BaseIndexer<T, D>> indexersInMemory;
 
@@ -36,13 +45,13 @@ public class Searcher<T extends Block & BaseTerm, D extends Block & BaseDocument
 
     private IndexerProvider<T, D> indexerProvider;
 
-    private Map<Integer, Integer> docRegsRanks;
-
-    private Map<String, Integer> indexersRanks;
-
     private int maxDocRegsInMemory;
 
     private int maxIndexersInMemory;
+
+    private Map<Integer, Integer> docRegsRanks;
+
+    private Map<String, Integer> indexersRanks;
 
     public Searcher(
         BaseTokenizer tokenizer,
@@ -71,11 +80,15 @@ public class Searcher<T extends Block & BaseTerm, D extends Block & BaseDocument
     }
 
     public List<String> queryIndex(String query) {
-        List<String> terms = tokenizer.tokenizeString(query);
+        Map<String, Float> termFrequencies = calculations.calculateTermFrequency(
+            tokenizer.tokenizeString(query)
+        );
 
         List<List<D>> postingLists = new LinkedList<>();
 
-        terms.forEach(term -> {
+        Set<String> toRemove = new HashSet<>();
+
+        for (String term : termFrequencies.keySet()) {
             Map.Entry<String, BaseIndexer<T, D>> indexerEntry = indexersInMemory.lowerEntry(term);
             List<D> postingList = indexerEntry == null ? null : indexerEntry.getValue().getPostingList(term);
 
@@ -117,17 +130,32 @@ public class Searcher<T extends Block & BaseTerm, D extends Block & BaseDocument
 
                         indexersRanks.put(indexFilenameEntry.getKey(), indexersRanks.get(indexFilenameEntry.getKey()) + 1);
                     }
-                    /*else {
+                    else {
                         // term wasn't indexed
-                    }*/
+                        toRemove.add(term);
+                    }
                 }
-                /*else {
-                    // term wasn't indexed
-                }*/
+                else {
+                    toRemove.add(term);
+                }
             }
-        });
+        }
 
-        // parse posting lists
+        // remove not indexed terms
+        for (String termToRemove : toRemove) {
+            termFrequencies.remove(termToRemove);
+        }
+
+        // TODO apply idf on query
+        // TODO apply normalization on query
+
+        // TODO Get docs that contain more than x terms
+
+        // TODO calculate their weights
+
+        // TODO sort docs by weights
+
+        // TODO translate doc id
 
         return null;
     }

@@ -13,7 +13,7 @@ import io.data_containers.persisters.strategies.WeightsAndPositionStrategy;
 import io.data_containers.persisters.strategies.WeightStrategy;
 import data_containers.indexer.WeightsAndPositionsIndexer;
 import data_containers.indexer.WeightsIndexer;
-import data_containers.indexer.weights_calculation.LNC;
+import data_containers.indexer.weights_calculation.indexing.LNC;
 import mains.indexing.pipelines.Pipeline;
 import mains.indexing.pipelines.SPIMIPipeline;
 import parsers.corpus.CorpusReader;

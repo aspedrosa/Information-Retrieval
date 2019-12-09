@@ -3,7 +3,7 @@ package data_containers.indexer;
 import data_containers.indexer.structures.DocumentWithInfo;
 import data_containers.indexer.structures.TermWithInfo;
 import data_containers.indexer.structures.aux_structs.DocumentWeight;
-import data_containers.indexer.weights_calculation.CalculationsBase;
+import data_containers.indexer.weights_calculation.indexing.CalculationsBase;
 
 import java.util.List;
 import java.util.Map;

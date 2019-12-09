@@ -4,7 +4,7 @@ import data_containers.indexer.post_indexing_actions.CalculateIDFAction;
 import data_containers.indexer.structures.DocumentWithInfo;
 import data_containers.indexer.structures.TermWithInfo;
 import data_containers.indexer.structures.aux_structs.DocumentWeight;
-import data_containers.indexer.weights_calculation.CalculationsBase;
+import data_containers.indexer.weights_calculation.indexing.CalculationsBase;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -38,7 +38,7 @@ public abstract class WeightsIndexerBase <V extends DocumentWeight> extends Base
 
     @Override
     protected final void insertDocument(int documentId, Map<String, Integer> frequencies) {
-        Map<String, Float> weights = calculations.preNormalization(frequencies);
+        Map<String, Float> weights = calculations.calculateWeights(frequencies);
 
         weights.forEach((term, weight) -> {
             dummyTerm.setTerm(term);
