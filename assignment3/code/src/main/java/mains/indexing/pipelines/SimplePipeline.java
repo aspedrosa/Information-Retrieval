@@ -2,11 +2,9 @@ package mains.indexing.pipelines;
 
 import data_containers.indexer.BaseIndexer;
 import data_containers.indexer.post_indexing_actions.PostIndexingActions;
+import data_containers.indexer.structures.TermInfoBase;
 import io.metadata.MetadataManager;
 import io.data_containers.persisters.BasePersister;
-import data_containers.indexer.structures.BaseDocument;
-import data_containers.indexer.structures.BaseTerm;
-import data_containers.indexer.structures.Block;
 import parsers.corpus.CorpusReader;
 import parsers.documents.Document;
 import parsers.files.FileParser;
@@ -21,7 +19,12 @@ import java.util.Map;
  * It doesn't take memory into consideration and writes the index to a
  *  single file
  */
-public class SimplePipeline<T extends Block & BaseTerm, D extends Block & BaseDocument> extends Pipeline<T, D> {
+public class SimplePipeline<
+    T extends Comparable<T>,
+    W extends Number,
+    D extends data_containers.indexer.structures.Document<W>,
+    I extends TermInfoBase<W, D>
+    > extends Pipeline<T, W, D, I> {
 
     /**
      * SimplePipeline main constructor
@@ -34,9 +37,9 @@ public class SimplePipeline<T extends Block & BaseTerm, D extends Block & BaseDo
      *  document registry structure
      */
     public SimplePipeline(BaseTokenizer tokenizer,
-                          BaseIndexer<T, D> indexer,
+                          BaseIndexer<T, W, D, I> indexer,
                           CorpusReader corpusReader,
-                          BasePersister<T, List<D>> finalIndexPersister,
+                          BasePersister<T, I> finalIndexPersister,
                           BasePersister<Integer, String> docRegistryPersister,
                           MetadataManager metadataManager) {
         super(tokenizer, indexer, corpusReader, finalIndexPersister, docRegistryPersister, metadataManager);
@@ -73,10 +76,10 @@ public class SimplePipeline<T extends Block & BaseTerm, D extends Block & BaseDo
      */
     @Override
     public void persistIndex() {
-        PostIndexingActions<T, D> postIndexingActions = indexer.getPostIndexingActions();
+        PostIndexingActions<W, D, I> postIndexingActions = indexer.getPostIndexingActions();
         if (indexer.getPostIndexingActions() != null) {
-            for (Map.Entry<T, List<D>> entry : indexer.getInvertedIndex().entrySet()) {
-                postIndexingActions.apply(entry.getKey(), entry.getValue());
+            for (Map.Entry<T, I> entry : indexer.getInvertedIndex().entrySet()) {
+                postIndexingActions.apply(entry.getValue());
             }
         }
 

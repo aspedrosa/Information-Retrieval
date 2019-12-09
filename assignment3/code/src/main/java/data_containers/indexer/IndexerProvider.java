@@ -1,14 +1,16 @@
 package data_containers.indexer;
 
-import data_containers.indexer.structures.BaseDocument;
-import data_containers.indexer.structures.BaseTerm;
-import data_containers.indexer.structures.Block;
+import data_containers.indexer.structures.Document;
+import data_containers.indexer.structures.TermInfoBase;
 
-import java.util.List;
 import java.util.Map;
 
-public interface IndexerProvider<T extends Block & BaseTerm, D extends Block & BaseDocument> {
+public interface IndexerProvider<
+    T extends Comparable<T>,
+    W extends Number,
+    D extends Document<W>,
+    I extends TermInfoBase<W, D>> {
 
-    BaseIndexer<T, D> createIndexer(Map<T, List<D>> loadedIndex);
+    BaseIndexer<T, W, D, I> createIndexer(Map<T, I> loadedIndex);
 
 }

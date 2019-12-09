@@ -1,23 +1,15 @@
 package data_containers.indexer;
 
 import data_containers.indexer.post_indexing_actions.CalculateIDFAction;
-import data_containers.indexer.structures.DocumentWithInfo;
-import data_containers.indexer.structures.TermWithInfo;
-import data_containers.indexer.structures.aux_structs.DocumentWeight;
+import data_containers.indexer.structures.Document;
+import data_containers.indexer.structures.TermInfoWithIDF;
 import data_containers.indexer.weights_calculation.indexing.CalculationsBase;
 
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 
-/**
- * Indexes terms associating weights to terms
- *  for weight ranking of documents
- *
- * @param <V> type of the extra info of the
- *  documents, which has a term associated
- */
-public abstract class WeightsIndexerBase <V extends DocumentWeight> extends BaseIndexer<TermWithInfo<Float>, DocumentWithInfo<V>> {
+public abstract class WeightsIndexerBase<D extends Document<Float>>
+    extends BaseIndexer<
+    String, Float, D, TermInfoWithIDF<Float, D>> {
 
     protected CalculationsBase calculations;
 
@@ -31,7 +23,7 @@ public abstract class WeightsIndexerBase <V extends DocumentWeight> extends Base
 
     protected WeightsIndexerBase(
         CalculationsBase calculations,
-        Map<TermWithInfo<Float>, List<DocumentWithInfo<V>>> loadedIndex) {
+        Map<String, TermInfoWithIDF<Float, D>> loadedIndex) {
         super(new CalculateIDFAction<>(), loadedIndex);
         this.calculations = calculations;
     }
@@ -41,29 +33,23 @@ public abstract class WeightsIndexerBase <V extends DocumentWeight> extends Base
         Map<String, Float> weights = calculations.calculateWeights(frequencies);
 
         weights.forEach((term, weight) -> {
-            dummyTerm.setTerm(term);
+            TermInfoWithIDF<Float, D> termInfo = invertedIndex.get(term);
 
-            List<DocumentWithInfo<V>> postingList = invertedIndex.get(dummyTerm);
-
-            if (postingList == null) {
-                postingList = new LinkedList<>();
-                invertedIndex.put(new TermWithInfo<>(term, .0f), postingList);
+            if (termInfo == null) {
+                termInfo = new TermInfoWithIDF<>();
+                invertedIndex.put(term, termInfo);
             }
 
-            postingList.add(
+            termInfo.addToPostingList(
                 createDocument(
                     documentId,
-                    createDocumentWeight(
-                        term,
-                        calculations.applyNormalization(weight)
-                    )
+                    calculations.applyNormalization(weight),
+                    term
                 )
             );
         });
     }
 
-    public abstract DocumentWithInfo<V> createDocument(int documentId, V weight);
-
-    public abstract V createDocumentWeight(String term, float weight);
+    public abstract D createDocument(int documentId, float weight, String term);
 
 }

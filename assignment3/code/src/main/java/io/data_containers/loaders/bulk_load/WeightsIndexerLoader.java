@@ -1,18 +1,19 @@
 package io.data_containers.loaders.bulk_load;
 
-import data_containers.indexer.structures.DocumentWithInfo;
-import data_containers.indexer.structures.TermWithInfo;
-import data_containers.indexer.structures.aux_structs.DocumentWeight;
+import data_containers.indexer.structures.Document;
+import data_containers.indexer.structures.TermInfoWithIDF;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class WeightsIndexerLoader extends LinesLoader<TermWithInfo<Float>, List<DocumentWithInfo<DocumentWeight>>> {
+public class WeightsIndexerLoader extends LinesLoader<
+    String,
+    TermInfoWithIDF<Float, Document<Float>>
+    > {
 
     private static final Pattern separatorsRegex = Pattern.compile("[:;]");
 
@@ -21,31 +22,29 @@ public class WeightsIndexerLoader extends LinesLoader<TermWithInfo<Float>, List<
     }
 
     @Override
-    public Map<TermWithInfo<Float>, List<DocumentWithInfo<DocumentWeight>>> parseLines(Stream<String> lines) {
+    public Map<String, TermInfoWithIDF<Float, Document<Float>>> parseLines(Stream<String> lines) {
         return lines.map(line -> {
             String[] elements = separatorsRegex.split(line);
 
-            Entry<TermWithInfo<Float>, List<DocumentWithInfo<DocumentWeight>>> entry = new Entry<>();
+            Entry<String, TermInfoWithIDF<Float, Document<Float>>> entry = new Entry<>();
 
-            entry.setKey(
-                new TermWithInfo<>(
-                    elements[0],
-                    Float.parseFloat(elements[1])
-                    )
-            );
+            entry.setKey(elements[0]);
 
-            List<DocumentWithInfo<DocumentWeight>> postingList = new ArrayList<>((elements.length - 2) / 2);
+            List<Document<Float>> postingList = new ArrayList<>((elements.length - 2) / 2);
 
             for (int i = 2; i < elements.length; i += 2) {
                 postingList.add(
-                    new DocumentWithInfo<>(
-                        Integer.parseInt(elements[i]),
-                        new DocumentWeight(Float.parseFloat(elements[i + 1]))
+                    new Document<>(
+                        Integer.parseInt(elements[i]), // docId
+                        Float.parseFloat(elements[i + 1])
                     )
                 );
             }
 
-            entry.setValue(postingList);
+            entry.setValue(new TermInfoWithIDF<>(
+                postingList,
+                Float.parseFloat(elements[1]) // idf
+            ));
 
             return entry;
         }).collect(Collectors.toMap(

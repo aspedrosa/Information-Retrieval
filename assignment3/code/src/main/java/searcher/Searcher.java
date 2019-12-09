@@ -3,33 +3,30 @@ package searcher;
 import data_containers.DocumentRegistry;
 import data_containers.indexer.BaseIndexer;
 import data_containers.indexer.IndexerProvider;
-import data_containers.indexer.WeightsIndexerBase;
-import data_containers.indexer.structures.BaseDocument;
-import data_containers.indexer.structures.BaseTerm;
-import data_containers.indexer.structures.Block;
-import data_containers.indexer.structures.DocumentWithInfo;
-import data_containers.indexer.structures.TermWithInfo;
-import data_containers.indexer.structures.aux_structs.DocumentWeight;
+import data_containers.indexer.structures.Document;
+import data_containers.indexer.structures.TermInfoBase;
 import data_containers.indexer.weights_calculation.searching.CalculationsBase;
+import data_containers.indexer.weights_calculation.searching.LTC;
 import io.data_containers.loaders.bulk_load.BulkLoader;
 import tokenizer.BaseTokenizer;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
-public class Searcher<T extends Block & BaseTerm, D extends Block & BaseDocument> {
+public class Searcher<D extends Document<Float>,
+    I extends TermInfoBase<Float, D>
+    > {
 
     private BaseTokenizer tokenizer;
 
-    private CalculationsBase calculations;
+    private CalculationsBase<String, Float, D, I> calculations = new LTC();
 
     private TreeMap<Integer, String> docRegMetadata;
 
@@ -37,13 +34,13 @@ public class Searcher<T extends Block & BaseTerm, D extends Block & BaseDocument
 
     private TreeMap<Integer, DocumentRegistry> docRegsInMemory;
 
-    private TreeMap<String, BaseIndexer<T, D>> indexersInMemory;
+    private TreeMap<String, BaseIndexer<String, Float, D, I>> indexersInMemory;
 
     private BulkLoader<Integer, String> docRegLoader;
 
-    private BulkLoader<T, List<D>> indexerLoader;
+    private BulkLoader<String, I> indexerLoader;
 
-    private IndexerProvider<T, D> indexerProvider;
+    private IndexerProvider<String, Float, D, I> indexerProvider;
 
     private int maxDocRegsInMemory;
 
@@ -58,8 +55,8 @@ public class Searcher<T extends Block & BaseTerm, D extends Block & BaseDocument
         TreeMap<Integer, String> docRegMetadata,
         TreeMap<String, String> indexerMetadata,
         BulkLoader<Integer, String> docRegLoader,
-        BulkLoader<T, List<D>> indexerLoader,
-        IndexerProvider<T, D> indexerProvider,
+        BulkLoader<String, I> indexerLoader,
+        IndexerProvider<String, Float, D, I> indexerProvider,
         int maxDocRegsInMemory,
         int maxIndexersInMemory
         ) {
@@ -84,18 +81,29 @@ public class Searcher<T extends Block & BaseTerm, D extends Block & BaseDocument
             tokenizer.tokenizeString(query)
         );
 
-        List<List<D>> postingLists = new LinkedList<>();
+        // ---
 
-        Set<String> toRemove = new HashSet<>();
+        List<String> terms = new ArrayList<>(termFrequencies.size());
+        List<List<D>> postingLists = new ArrayList<>(termFrequencies.size());
 
-        for (String term : termFrequencies.keySet()) {
-            Map.Entry<String, BaseIndexer<T, D>> indexerEntry = indexersInMemory.lowerEntry(term);
-            List<D> postingList = indexerEntry == null ? null : indexerEntry.getValue().getPostingList(term);
+        termFrequencies.forEach((term, frequency) -> {
+            Map.Entry<String, BaseIndexer<String, Float, D, I>> indexerEntry = indexersInMemory.lowerEntry(term);
+            I termInfo = indexerEntry == null ? null : indexerEntry.getValue().getTermInfo(term);
 
-            if (indexerEntry != null && postingList != null) {
+            if (indexerEntry != null && termInfo != null) {
                 indexersRanks.put(indexerEntry.getKey(), indexersRanks.get(indexerEntry.getKey()) + 1);
 
-                postingLists.add(postingList);
+                termFrequencies.put( // apply idf
+                    term,
+                    calculations.applyDocumentFrequency(
+                        frequency,
+                        termInfo
+                    )
+                );
+
+                terms.add(term);
+                postingLists.add(termInfo.getPostingList());
+                System.out.println("in memory");
             }
             else {
                 // not in memory
@@ -108,7 +116,7 @@ public class Searcher<T extends Block & BaseTerm, D extends Block & BaseDocument
 
                     checkIfCanLoadIndexerFromDisk();
 
-                    BaseIndexer<T, D> indexer = null;
+                    BaseIndexer<String, Float, D, I> indexer = null;
                     try {
                         indexer = indexerProvider.createIndexer(indexerLoader.load(indexFilename));
                     } catch (IOException e) {
@@ -124,46 +132,96 @@ public class Searcher<T extends Block & BaseTerm, D extends Block & BaseDocument
                         indexersRanks.put(indexFilenameEntry.getKey(), 0);
                     }
 
-                    postingList = indexer.getPostingList(term);
-                    if (postingList != null) {
-                        postingLists.add(postingList);
+                    termInfo = indexer.getTermInfo(term);
+                    if (termInfo != null) {
+                        terms.add(term);
+                        postingLists.add(termInfo.getPostingList());
+
+                        termFrequencies.put( // apply idf
+                            term,
+                            calculations.applyDocumentFrequency(
+                                frequency,
+                                termInfo
+                            )
+                        );
 
                         indexersRanks.put(indexFilenameEntry.getKey(), indexersRanks.get(indexFilenameEntry.getKey()) + 1);
                     }
-                    else {
+                    /*else {
                         // term wasn't indexed
-                        toRemove.add(term);
-                    }
+                    }*/
                 }
-                else {
+                /*else {
                     toRemove.add(term);
+                }*/
+            }
+        });
+
+        // apply normalization on query
+        termFrequencies.forEach((term, termWeight) -> {
+            termFrequencies.put(term, calculations.applyNormalization(termWeight));
+        });
+
+        // ----
+
+        List<Integer> postingListsCurrentIndexes = new ArrayList<>(postingLists.size());
+        for (int i = 0; i < postingLists.size(); i++) {
+            postingListsCurrentIndexes.add(0);
+        }
+
+        List<DocumentRank> documentsToReturn = new ArrayList<>();
+
+        while (!indexsAtEnd(postingListsCurrentIndexes, terms, postingLists)) {
+            List<Integer> idxWithDocWithLowerID = new ArrayList<>(terms.size());
+
+            idxWithDocWithLowerID.add(0);
+            int lowestDocId = postingLists.get(0).get(0).getDocId();
+            for (int i = 1; i < postingListsCurrentIndexes.size(); i++) {
+                int docId = postingLists.get(i).get(0).getDocId();
+                if (docId < lowestDocId) {
+                    idxWithDocWithLowerID.clear();
+                    idxWithDocWithLowerID.add(i);
+                    lowestDocId = docId;
                 }
+                else if (docId == lowestDocId) {
+                    idxWithDocWithLowerID.add(i);
+                }
+            }
+
+            if (idxWithDocWithLowerID.size() >= termFrequencies.size() * 0.5) {
+                float cumulativeScore = 0;
+                int docId = postingLists.get(idxWithDocWithLowerID.get(0)).get(0).getDocId();
+
+                for (Integer idx : idxWithDocWithLowerID) {
+                    float documentWeightForTerm = postingLists.get(idx).get(0).getWeight();
+                    float queryTermWeight = termFrequencies.get(terms.get(idx));
+
+                    cumulativeScore += queryTermWeight * documentWeightForTerm;
+                }
+
+                documentsToReturn.add(new DocumentRank(docId, cumulativeScore));
+            }
+
+            for (Integer idx : idxWithDocWithLowerID) {
+                int currentIdx = postingListsCurrentIndexes.get(idx);
+                postingListsCurrentIndexes.set(idx, currentIdx + 1);
             }
         }
 
-        // remove not indexed terms
-        for (String termToRemove : toRemove) {
-            termFrequencies.remove(termToRemove);
-        }
+        documentsToReturn.sort(Comparator.comparing(doc -> doc.weight));
 
-        // TODO apply idf on query
-        // TODO apply normalization on query
-
-        // TODO Get docs that contain more than x terms
-
-        // TODO calculate their weights
-
-        // TODO sort docs by weights
-
-        // TODO translate doc id
+        // TODO for the first K docs
+        //  check if the translation to identifier is in mem
+        //  if is DOIT
+        //  else checkif can load from disk
+        //    load from disk get translations
 
         return null;
     }
 
     private void checkIfCanLoadIndexerFromDisk() {
-        // there's still space
         if (indexersInMemory.size() < maxIndexersInMemory) {
-            return;
+            return; // there's still space
         }
 
         Set<String> toSave = indexersRanks
@@ -185,20 +243,65 @@ public class Searcher<T extends Block & BaseTerm, D extends Block & BaseDocument
     }
 
     private void checkIfCanLoadDocRegFromDisk() {
-        Set<Integer> toSave = docRegsRanks.entrySet().stream().filter(entry ->
-            docRegsInMemory.containsKey(entry.getKey())
-        ).sorted(Comparator.comparingInt(Map.Entry::getValue))
-            .limit(4)
+        if (docRegsInMemory.size() < maxDocRegsInMemory) {
+            return; // there's still space
+        }
+
+        Set<Integer> toSave = docRegsRanks
+            .entrySet()
+            .stream()
+            .filter(entry -> docRegsInMemory.containsKey(entry.getKey()))
+            .sorted((entry1, entry2) ->
+                -entry1.getValue().compareTo(entry2.getValue()) // decreasing order
+            )
+            .limit(Math.floorDiv(maxDocRegsInMemory, 2))
             .map(Map.Entry::getKey)
             .collect(Collectors.toSet());
 
-        for (Integer key : docRegsInMemory.keySet()) {
-            if (!toSave.contains(key)) {
-                docRegsInMemory.remove(key);
+        docRegsInMemory.keySet().removeIf(key ->
+            !toSave.contains(key)
+        );
+
+        System.gc();
+    }
+
+    private boolean indexsAtEnd(List<Integer> idxs, List<String> terms, List<List<D>> postingLists) {
+        assert idxs.size() == postingLists.size() && postingLists.size() == terms.size();
+
+        boolean atEnd = true;
+
+        for (int i = postingLists.size() - 1; i >= 0; i--) {
+            if (idxs.get(i) < postingLists.get(i).size()) {
+                atEnd = false;
+            }
+            else {
+                idxs.remove(i);
+                terms.remove(i);
+                postingLists.remove(i);
             }
         }
 
-        System.gc();
+        return atEnd;
+    }
+
+    private class DocumentRank {
+
+        private int docId;
+
+        private Float weight;
+
+        public DocumentRank(int docId, float weight) {
+            this.docId = docId;
+            this.weight = weight;
+        }
+
+        public int getDocId() {
+            return docId;
+        }
+
+        public Float getWeight() {
+            return weight;
+        }
     }
 
 }

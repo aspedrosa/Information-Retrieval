@@ -1,8 +1,7 @@
 package data_containers.indexer;
 
 import data_containers.indexer.structures.DocumentWithInfo;
-import data_containers.indexer.structures.TermWithInfo;
-import data_containers.indexer.structures.aux_structs.DocumentWeightAndPositions;
+import data_containers.indexer.structures.TermInfoWithIDF;
 import data_containers.indexer.weights_calculation.indexing.CalculationsBase;
 
 import java.util.ArrayList;
@@ -15,7 +14,7 @@ import java.util.Map;
  *  the positions that a certain term appears in a
  *  certain document
  */
-public class WeightsAndPositionsIndexer extends WeightsIndexerBase<DocumentWeightAndPositions> {
+public class WeightsAndPositionsIndexer extends WeightsIndexerBase<DocumentWithInfo<Float, List<Integer>>> {
 
     /**
      * Auxiliary structure to store the positions for each
@@ -30,37 +29,27 @@ public class WeightsAndPositionsIndexer extends WeightsIndexerBase<DocumentWeigh
      */
     public WeightsAndPositionsIndexer(CalculationsBase calculations) {
         super(calculations);
-        dummyTerm = new TermWithInfo<>();
         auxTermsPositions = new HashMap<>();
     }
 
     protected WeightsAndPositionsIndexer(
         CalculationsBase calculations,
-        Map<TermWithInfo<Float>, List<DocumentWithInfo<DocumentWeightAndPositions>>> loadedIndex
+        Map<String, TermInfoWithIDF<Float, DocumentWithInfo<Float, List<Integer>>>> loadedIndex
         ) {
         super(calculations, loadedIndex);
-        dummyTerm = new TermWithInfo<>();
     }
 
     @Override
-    public DocumentWithInfo<DocumentWeightAndPositions> createDocument(int documentId, DocumentWeightAndPositions weight) {
+    public DocumentWithInfo<Float, List<Integer>> createDocument(int documentId, float weight, String term) {
         return new DocumentWithInfo<>(
             documentId,
-            weight
-        );
-    }
-
-    @Override
-    public DocumentWeightAndPositions createDocumentWeight(String term, float weight) {
-        return new DocumentWeightAndPositions(
             weight,
             auxTermsPositions.get(term)
         );
     }
 
     @Override
-    public BaseIndexer<TermWithInfo<Float>, DocumentWithInfo<DocumentWeightAndPositions>> createIndexer(
-        Map<TermWithInfo<Float>, List<DocumentWithInfo<DocumentWeightAndPositions>>> loadedIndex) {
+    public BaseIndexer<String, Float, DocumentWithInfo<Float, List<Integer>>, TermInfoWithIDF<Float, DocumentWithInfo<Float, List<Integer>>>> createIndexer(Map<String, TermInfoWithIDF<Float, DocumentWithInfo<Float, List<Integer>>>> loadedIndex) {
         return new WeightsAndPositionsIndexer(this.calculations, loadedIndex);
     }
 

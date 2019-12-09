@@ -2,17 +2,15 @@ package mains.indexing.pipelines;
 
 import data_containers.DocumentRegistry;
 import data_containers.indexer.BaseIndexer;
+import data_containers.indexer.structures.Document;
+import data_containers.indexer.structures.TermInfoBase;
 import io.metadata.MetadataManager;
 import io.data_containers.persisters.BasePersister;
-import data_containers.indexer.structures.BaseDocument;
-import data_containers.indexer.structures.BaseTerm;
-import data_containers.indexer.structures.Block;
 import parsers.corpus.CorpusReader;
 import parsers.files.FileParser;
 import tokenizer.BaseTokenizer;
 
 import java.io.IOException;
-import java.util.List;
 
 /**
  * Base class of all pipelines. On this class its defined the
@@ -27,7 +25,12 @@ import java.util.List;
  * @param <T> type of the terms
  * @param <D> type of the documents
  */
-public abstract class Pipeline<T extends Block & BaseTerm, D extends Block & BaseDocument> {
+public abstract class Pipeline<
+    T extends Comparable<T>,
+    W extends Number,
+    D extends Document<W>,
+    I extends TermInfoBase<W, D>
+    > {
 
     /**
      * Parsers a document's content an splits it into tokens
@@ -38,7 +41,7 @@ public abstract class Pipeline<T extends Block & BaseTerm, D extends Block & Bas
      * The principal class of the IR system. Associates
      *  a set o documents to a given term
      */
-    protected BaseIndexer<T, D> indexer;
+    protected BaseIndexer<T, W, D, I> indexer;
 
     protected DocumentRegistry documentRegistry;
 
@@ -51,7 +54,7 @@ public abstract class Pipeline<T extends Block & BaseTerm, D extends Block & Bas
     /**
      * Class to persist the inverted index to disk
      */
-    protected BasePersister<T, List<D>> finalIndexPersister;
+    protected BasePersister<T, I> finalIndexPersister;
 
     /**
      * Class to persist the document registry structure
@@ -72,9 +75,9 @@ public abstract class Pipeline<T extends Block & BaseTerm, D extends Block & Bas
      *  document registry structure
      */
     public Pipeline(BaseTokenizer tokenizer,
-                    BaseIndexer<T, D> indexer,
+                    BaseIndexer<T, W, D, I> indexer,
                     CorpusReader corpusReader,
-                    BasePersister<T, List<D>> finalIndexPersister,
+                    BasePersister<T, I> finalIndexPersister,
                     BasePersister<Integer, String> docRegistryPersister,
                     MetadataManager metadataManager) {
         this.tokenizer = tokenizer;

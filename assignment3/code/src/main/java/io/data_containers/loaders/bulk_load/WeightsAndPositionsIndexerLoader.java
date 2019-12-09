@@ -1,18 +1,18 @@
 package io.data_containers.loaders.bulk_load;
 
 import data_containers.indexer.structures.DocumentWithInfo;
-import data_containers.indexer.structures.TermWithInfo;
-import data_containers.indexer.structures.aux_structs.DocumentWeightAndPositions;
+import data_containers.indexer.structures.TermInfoWithIDF;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class WeightsAndPositionsIndexerLoader extends LinesLoader<TermWithInfo<Float>, List<DocumentWithInfo<DocumentWeightAndPositions>>> {
+public class WeightsAndPositionsIndexerLoader extends LinesLoader<
+    String,
+    TermInfoWithIDF<Float, DocumentWithInfo<Float, List<Integer>>>> {
 
     private static final Pattern separatorsRegex = Pattern.compile("[:;]");
 
@@ -23,20 +23,15 @@ public class WeightsAndPositionsIndexerLoader extends LinesLoader<TermWithInfo<F
     }
 
     @Override
-    public Map<TermWithInfo<Float>, List<DocumentWithInfo<DocumentWeightAndPositions>>> parseLines(Stream<String> lines) {
+    public Map<String, TermInfoWithIDF<Float, DocumentWithInfo<Float, List<Integer>>>> parseLines(Stream<String> lines) {
         return lines.map(line -> {
             String[] elements = separatorsRegex.split(line);
 
-            Entry<TermWithInfo<Float>, List<DocumentWithInfo<DocumentWeightAndPositions>>> entry = new Entry<>();
+            Entry<String, TermInfoWithIDF<Float, DocumentWithInfo<Float, List<Integer>>>> entry = new Entry<>();
 
-            entry.setKey(
-                new TermWithInfo<>(
-                    elements[0],
-                    Float.parseFloat(elements[1])
-                )
-            );
+            entry.setKey(elements[0]);
 
-            List<DocumentWithInfo<DocumentWeightAndPositions>> postingList = new ArrayList<>((elements.length - 2) / 3);
+            List<DocumentWithInfo<Float, List<Integer>>> postingList = new ArrayList<>((elements.length - 2) / 3);
 
             for (int i = 2; i < elements.length; i += 3) {
                 String[] positionsStrings = positionsSeparatorsRegex.split(elements[i + 2]);
@@ -48,16 +43,17 @@ public class WeightsAndPositionsIndexerLoader extends LinesLoader<TermWithInfo<F
 
                 postingList.add(
                     new DocumentWithInfo<>(
-                        Integer.parseInt(elements[i]),
-                        new DocumentWeightAndPositions(
-                            Float.parseFloat(elements[i + 1]),
-                            positions
-                        )
+                        Integer.parseInt(elements[i]), // docId
+                        Float.parseFloat(elements[i + 1]),
+                        positions
                     )
                 );
             }
 
-            entry.setValue(postingList);
+            entry.setValue(new TermInfoWithIDF<>(
+                postingList,
+                Float.parseFloat(elements[1]) // idf
+            ));
 
             return entry;
         }).collect(Collectors.toMap(

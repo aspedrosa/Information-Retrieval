@@ -2,16 +2,14 @@ package mains.indexing.pipelines;
 
 import data_containers.indexer.BaseIndexer;
 import data_containers.indexer.post_indexing_actions.PostIndexingActions;
+import data_containers.indexer.structures.Document;
+import data_containers.indexer.structures.TermInfoBase;
 import io.metadata.MetadataManager;
 import io.data_containers.loaders.lazy_load.LazyLoader;
 import io.data_containers.loaders.lazy_load.ObjectStreamLoader;
 import io.data_containers.persisters.BasePersister;
 import io.data_containers.persisters.ObjectStreamPersister;
-import data_containers.indexer.structures.BaseDocument;
-import data_containers.indexer.structures.BaseTerm;
-import data_containers.indexer.structures.Block;
 import parsers.corpus.CorpusReader;
-import parsers.documents.Document;
 import parsers.files.FileParser;
 import tokenizer.BaseTokenizer;
 
@@ -31,7 +29,12 @@ import java.util.Map;
  * @param <T> type of the terms
  * @param <D> type of the documents
  */
-public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDocument> extends Pipeline<T, D> {
+public class SPIMIPipeline<
+    T extends Comparable<T>,
+    W extends Number,
+    D extends Document<W>,
+    I extends TermInfoBase<W, D>
+    > extends Pipeline<T, W, D, I> {
 
     /**
      * Maximum memory load factor
@@ -41,12 +44,12 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
     /**
      * Persister for the final index
      */
-    private ObjectStreamPersister<T, List<D>> indexingTmpFilesPersister;
+    private ObjectStreamPersister<T, I> indexingTmpFilesPersister;
 
     /**
      * Persister for the temporary indexing files
      */
-    private ObjectStreamLoader<T, List<D>> indexingTmpFilesLoader;
+    private ObjectStreamLoader<T, I> indexingTmpFilesLoader;
 
     /**
      * Variable to know if on the indexing step the
@@ -69,11 +72,11 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
      *  storing the final index
      */
     public SPIMIPipeline(BaseTokenizer tokenizer,
-                         BaseIndexer<T, D> indexer,
+                         BaseIndexer<T, W, D, I> indexer,
                          CorpusReader corpusReader,
                          String tmpFolder,
                          BasePersister<Integer, String> docRegistryPersister,
-                         BasePersister<T, List<D>> finalIndexPersister,
+                         BasePersister<T, I> finalIndexPersister,
                          MetadataManager metadataManager,
                          float maxLoadFactor) {
         super(tokenizer, indexer, corpusReader, finalIndexPersister, docRegistryPersister, metadataManager);
@@ -91,7 +94,7 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
      */
     @Override
     public void processFile(FileParser fileParser) {
-        for (Document document : fileParser) {
+        for (parsers.documents.Document document : fileParser) {
             List<String> terms = tokenizer.tokenizeDocument(document.getToTokenize());
 
             int docId = documentRegistry.registerDocument(document.getIdentifier());
@@ -153,10 +156,10 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
             System.gc();
         }
         else {
-            PostIndexingActions<T, D> postIndexingActions = indexer.getPostIndexingActions();
+            PostIndexingActions<W, D, I> postIndexingActions = indexer.getPostIndexingActions();
             if (postIndexingActions != null) {
-                for (Map.Entry<T, List<D>> entry : indexer.getInvertedIndex().entrySet()) {
-                    postIndexingActions.apply(entry.getKey(), entry.getValue());
+                for (Map.Entry<T, I> entry : indexer.getInvertedIndex().entrySet()) {
+                    postIndexingActions.apply(entry.getValue());
                 }
             }
 
@@ -174,7 +177,7 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
         }
 
         // iterators used to retrieve the entries from each temporary file
-        List<Iterator<Map.Entry<T, List<D>>>> tmpFilesReaders = new ArrayList<>();
+        List<Iterator<Map.Entry<T, I>>> tmpFilesReaders = new ArrayList<>();
 
         for (int i = 0; i < indexingTmpFilesPersister.getAmountOfFilesCreated(); i++) {
             String filename = String.format("%s%s", tmpFolder, i);
@@ -184,7 +187,7 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
         }
 
         // holds the top entry for each temporary file being merged
-        List<Map.Entry<T, List<D>>> tmpFilesTopEntries = new ArrayList<>(tmpFilesReaders .size());
+        List<Map.Entry<T, I>> tmpFilesTopEntries = new ArrayList<>(tmpFilesReaders .size());
         // to do a match between top entry and each temporary file their
         //  size must be the same. for that null are inserted
         for (int i = 0; i < tmpFilesReaders.size(); i++) {
@@ -193,14 +196,14 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
 
         // stores the entries for the commons terms lexicographically lower across
         //  all top entries of the different temporary files
-        List<Map.Entry<T, List<D>>> lowerCommonTerms = new ArrayList<>();
+        List<Map.Entry<T, I>> lowerCommonTerms = new ArrayList<>();
 
         // used to know from which files the lowerCommonTerms were retrieved
         List<Integer> retrievedTmpFilesTopEntriesIdx = new ArrayList<>();
 
         // stores the terms and their posting lists to later write and
         //  the memory load factor retches the maximum
-        List<Map.Entry<T, List<D>>> entriesToWrite = new ArrayList<>();
+        List<Map.Entry<T, I>> entriesToWrite = new ArrayList<>();
 
         // while there is entries on the temporary files to retrieve
         while (hasTmpFilesToRead(tmpFilesReaders, tmpFilesTopEntries)) {
@@ -208,7 +211,7 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
             // calculates which entries has the terms lexicographically lower across
             //  all top entries of the different temporary files
             for (int i = 0; i < tmpFilesTopEntries.size(); i++) {
-                Map.Entry<T, List<D>> entry = tmpFilesTopEntries.get(i);
+                Map.Entry<T, I> entry = tmpFilesTopEntries.get(i);
 
                 // if lowerCommonTerms is empty then is the first to be retrieved
                 if (lowerCommonTerms.isEmpty()) {
@@ -216,7 +219,7 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
                     retrievedTmpFilesTopEntriesIdx.add(i);
                 } else {
                     // compare the stored terms (all are common, so the first one is used) against the current one
-                    int compareResult = entry.getKey().getTerm().compareTo(lowerCommonTerms.get(0).getKey().getTerm());
+                    int compareResult = entry.getKey().compareTo(lowerCommonTerms.get(0).getKey());
 
                     // if its lexicographically lower
                     if (compareResult < 0) {
@@ -239,16 +242,22 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
 
             // variables to store the current term being parsed and
             //  its posting list
-            {T term = lowerCommonTerms.get(0).getKey();
+            {I commonTermInfo = lowerCommonTerms.get(0).getValue();
+            T term = lowerCommonTerms.get(0).getKey();
             List<D> docs = mergePostingLists(lowerCommonTerms);
 
-            entriesToWrite.add(new LazyLoader.Entry<>(term, docs));}
+            commonTermInfo.setPostingList(docs);
+            // TODO WARNING here it is assumed that the data present on
+            //  the term info structure beyond the posting list
+            //  is the same for the same terms
+
+            entriesToWrite.add(new LazyLoader.Entry<>(term, commonTermInfo));}
 
             if (maxLoadFactorExceeded()) {
-                PostIndexingActions<T, D> postIndexingActions = indexer.getPostIndexingActions();
+                PostIndexingActions<W, D, I> postIndexingActions = indexer.getPostIndexingActions();
                 if (postIndexingActions != null) {
-                    for (Map.Entry<T, List<D>> entry : entriesToWrite) {
-                        postIndexingActions.apply(entry.getKey(), entry.getValue());
+                    for (Map.Entry<T, I> entry : entriesToWrite) {
+                        postIndexingActions.apply(entry.getValue());
                     }
                 }
 
@@ -266,10 +275,10 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
             }
         }
 
-        PostIndexingActions<T, D> postIndexingActions = indexer.getPostIndexingActions();
+        PostIndexingActions<W, D, I> postIndexingActions = indexer.getPostIndexingActions();
         if (postIndexingActions != null) {
-            for (Map.Entry<T, List<D>> entry : entriesToWrite) {
-                postIndexingActions.apply(entry.getKey(), entry.getValue());
+            for (Map.Entry<T, I> entry : entriesToWrite) {
+                postIndexingActions.apply(entry.getValue());
             }
         }
 
@@ -308,11 +317,11 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
      * @param tmpFilesTopEntry holds the top entry for each temporary file being merged
      * @return true if exists at least one file to read from more entries
      */
-    private boolean hasTmpFilesToRead(List<Iterator<Map.Entry<T, List<D>>>> tmpFiles,
-                                      List<Map.Entry<T, List<D>>> tmpFilesTopEntry) {
+    private boolean hasTmpFilesToRead(List<Iterator<Map.Entry<T, I>>> tmpFiles,
+                                      List<Map.Entry<T, I>> tmpFilesTopEntry) {
         // for each temporary file
         for (int i = tmpFiles.size() - 1; i >= 0; i--) {
-            Iterator<Map.Entry<T, List<D>>> it = tmpFiles.get(i);
+            Iterator<Map.Entry<T, I>> it = tmpFiles.get(i);
 
             // if the top entry stored is null it means that it was used
             //  or its the first time read
@@ -341,14 +350,14 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
      *  all top entries of the different temporary files
      * @return a posting list with all the posting lists merged
      */
-    private List<D> mergePostingLists(List<Map.Entry<T, List<D>>> lowerCommonTerms) {
+    private List<D> mergePostingLists(List<Map.Entry<T, I>> lowerCommonTerms) {
         List<D> mergedPostingList = new ArrayList<>();
 
         // merge posting lists
         while (!lowerCommonTerms.isEmpty()) {
             // if there's only a posting list add it entirely
             if (lowerCommonTerms.size() == 1) {
-                mergedPostingList.addAll(lowerCommonTerms.get(0).getValue());
+                mergedPostingList.addAll(lowerCommonTerms.get(0).getValue().getPostingList());
                 lowerCommonTerms.clear();
                 break;
             }
@@ -356,10 +365,10 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
             // variables to know with posting list has the lowest document id
             // points to the last non empty posting list
             int idx = lowerCommonTerms.size() - 1;
-            int lowestDocId = lowerCommonTerms.get(idx).getValue().get(0).getDocId();
+            int lowestDocId = lowerCommonTerms.get(idx).getValue().getPostingList().get(0).getDocId();
 
             // removes the entries where the posting list are empty
-            while (lowerCommonTerms.get(idx).getValue().isEmpty()) {
+            while (lowerCommonTerms.get(idx).getValue().getPostingList().isEmpty()) {
                 lowerCommonTerms.remove(idx);
                 idx--; // and move the index to the next posting list (starting from the end)
             }
@@ -367,7 +376,7 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
             // for subsequent posting lists after the one checked above
             for (int i = idx - 1; i >= 0; i--) {
                 // if it is empty
-                List<D> postingListToCheck = lowerCommonTerms.get(i).getValue();
+                List<D> postingListToCheck = lowerCommonTerms.get(i).getValue().getPostingList();
                 if (postingListToCheck.isEmpty()) {
                     lowerCommonTerms.remove(i);
                     idx--; // a remove shifts the elements on the list
@@ -384,7 +393,7 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
                 }
             }
 
-            List<D> postListWithLowestDocId = lowerCommonTerms.get(idx).getValue();
+            List<D> postListWithLowestDocId = lowerCommonTerms.get(idx).getValue().getPostingList();
 
             // check if more documents can be inserted to the final posting list from the postListWithLowestDocId
             //  if they are lower than the first on the other posting lists
@@ -392,9 +401,9 @@ public class SPIMIPipeline<T extends Block & BaseTerm, D extends Block & BaseDoc
             int furtherIdxWhereDocIdStillLowest = 0;
 for1:         for (int i = 1; i < postListWithLowestDocId.size(); furtherIdxWhereDocIdStillLowest = i++) {
                 // for each posting list to merge
-                for (Map.Entry<T, List<D>> entry : lowerCommonTerms) {
+                for (Map.Entry<T, I> entry : lowerCommonTerms) {
 
-                    if (entry.getValue() != postListWithLowestDocId && entry.getValue().get(0).getDocId() < lowestDocId) {
+                    if (entry.getValue() != postListWithLowestDocId && entry.getValue().getPostingList().get(0).getDocId() < lowestDocId) {
                         break for1;
                     }
                 }

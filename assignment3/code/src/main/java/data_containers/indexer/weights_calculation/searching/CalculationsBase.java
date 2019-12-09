@@ -1,17 +1,20 @@
 package data_containers.indexer.weights_calculation.searching;
 
-import data_containers.indexer.structures.DocumentWithInfo;
-import data_containers.indexer.structures.TermWithInfo;
-import data_containers.indexer.structures.aux_structs.DocumentWeight;
+import data_containers.indexer.structures.Document;
+import data_containers.indexer.structures.TermInfoBase;
 
 import java.util.List;
 import java.util.Map;
 
-public interface CalculationsBase {
+public interface CalculationsBase<
+    T extends Comparable<T>,
+    W extends Number,
+    D extends Document<W>,
+    I extends TermInfoBase<W, D>> {
 
-    Map<String, Float> calculateTermFrequency(List<String> terms);
+    Map<T, Float> calculateTermFrequency(List<T> terms);
 
-    float applyDocumentFrequency(float termFrequency, TermWithInfo<Float> term, List<DocumentWithInfo<DocumentWeight>> postingList);
+    float applyDocumentFrequency(float termFrequency, I termInfo);
 
     float applyNormalization(float weight);
 

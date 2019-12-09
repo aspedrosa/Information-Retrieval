@@ -1,26 +1,30 @@
 package data_containers.indexer.weights_calculation.searching;
 
-import data_containers.indexer.structures.DocumentWithInfo;
-import data_containers.indexer.structures.TermWithInfo;
-import data_containers.indexer.structures.aux_structs.DocumentWeight;
+import data_containers.indexer.structures.Document;
+import data_containers.indexer.structures.TermInfoWithIDF;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class LTC implements CalculationsBase {
+public class LTC<
+    T extends Comparable<T>,
+    W extends Number,
+    D extends Document<W>,
+    I extends TermInfoWithIDF<W, D>
+    > implements CalculationsBase<T, W, D, I> {
 
     private float cosineNormalization = 0;
 
     @Override
-    public Map<String, Float> calculateTermFrequency(List<String> terms) {
-        Map<String, Float> termFrequencies = new HashMap<>();
+    public Map<T, Float> calculateTermFrequency(List<T> terms) {
+        Map<T, Float> termFrequencies = new HashMap<>();
 
-        for (String term : terms) {
+        for (T term : terms) {
             Float frequency = termFrequencies.get(term);
 
             if (frequency == null) {
-                frequency = 0f;
+                frequency = 1f;
             }
             else {
                 frequency++;
@@ -29,21 +33,19 @@ public class LTC implements CalculationsBase {
             termFrequencies.put(term, frequency);
         }
 
-        for (String term : termFrequencies.keySet()) {
-            float frequency = termFrequencies.get(term);
-
+        termFrequencies.forEach((term, frequency) -> {
             termFrequencies.put(
                 term,
                 (float) (1 + Math.log10(frequency))
             );
-        }
+        });
 
         return termFrequencies;
     }
 
     @Override
-    public float applyDocumentFrequency(float termFrequency, TermWithInfo<Float> term, List<DocumentWithInfo<DocumentWeight>> postingList) {
-        float weight = termFrequency * term.getExtraInfo();
+    public float applyDocumentFrequency(float termFrequency, I termInfo) {
+        float weight = termFrequency * termInfo.getIdf();
 
         cosineNormalization += Math.pow(weight, 2);
 
@@ -52,7 +54,7 @@ public class LTC implements CalculationsBase {
 
     @Override
     public float applyNormalization(float weight) {
-        return (float) (weight / Math.sqrt(weight));
+        return (float) (weight / Math.sqrt(cosineNormalization));
     }
 
     @Override

@@ -1,8 +1,6 @@
 package io.data_containers.persisters.strategies;
 
 import data_containers.indexer.structures.DocumentWithInfo;
-import data_containers.indexer.structures.TermWithInfo;
-import data_containers.indexer.structures.aux_structs.DocumentWeightAndPositions;
 
 import java.util.List;
 
@@ -10,31 +8,19 @@ import java.util.List;
  * Output strategy to format the entries indexer with weights and positions.
  * term:weight;doc1:weight,1,2;doc2:weight,3,4;...
  */
-public class WeightsAndPositionStrategy extends IndexerStrategy<TermWithInfo<Float>, DocumentWithInfo<DocumentWeightAndPositions>> {
-
-    /**
-     * Main constructor
-     */
-    public WeightsAndPositionStrategy() {
-        super(";".getBytes());
-    }
+public class WeightsAndPositionStrategy extends WeightStrategyBase<Float, DocumentWithInfo<Float, List<Integer>>> {
 
     @Override
-    public byte[] handleKey(TermWithInfo<Float> key) {
-        return String.format("%s:%.3f", key.getTerm(), key.getExtraInfo()).getBytes();
-    }
-
-    @Override
-    public byte[] handleDocument(DocumentWithInfo<DocumentWeightAndPositions> document) {
+    public byte[] handleDocument(DocumentWithInfo<Float, List<Integer>> document) {
         StringBuilder sb = new StringBuilder(
-            String.format("%s:%.3f:", document.getDocId(), document.getExtraInfo().getWeight())
+            String.format("%s:%." + precision + "f:", document.getDocId(), document.getWeight())
         );
 
-        List<Integer> positions = document.getExtraInfo().getPositions();
-        for (int i = 0; i < positions.size(); i++) {
-            sb.append(positions.get(i));
+        List<Integer> positions = document.getExtraInfo();
+        for (int p = 0; p < positions.size(); p++) {
+            sb.append(positions.get(p));
 
-            if (i < positions.size() - 1) {
+            if (p < positions.size() - 1) {
                 sb.append(',');
             }
         }

@@ -1,49 +1,37 @@
 package data_containers.indexer;
 
-import data_containers.indexer.structures.DocumentWithInfo;
-import data_containers.indexer.structures.TermWithInfo;
-import data_containers.indexer.structures.aux_structs.DocumentWeight;
+import data_containers.indexer.structures.Document;
+import data_containers.indexer.structures.TermInfoWithIDF;
 import data_containers.indexer.weights_calculation.indexing.CalculationsBase;
 
-import java.util.List;
 import java.util.Map;
 
-public class WeightsIndexer extends WeightsIndexerBase<DocumentWeight> {
+public class WeightsIndexer extends WeightsIndexerBase<Document<Float>> {
 
     /**
      * Main constructor
      */
     public WeightsIndexer(CalculationsBase calculations) {
         super(calculations);
-        this.dummyTerm = new TermWithInfo<>();
     }
 
     public WeightsIndexer(
         CalculationsBase calculations,
-        Map<TermWithInfo<Float>, List<DocumentWithInfo<DocumentWeight>>> loadedIndex
+        Map<String, TermInfoWithIDF<Float, Document<Float>>> loadedIndex
         ) {
         super(calculations, loadedIndex);
-        this.dummyTerm = new TermWithInfo<>();
     }
 
     @Override
-    public DocumentWithInfo<DocumentWeight> createDocument(int documentId, DocumentWeight weight) {
-        return new DocumentWithInfo<>(
+    public Document<Float> createDocument(int documentId, float weight, String term) {
+        return new Document<>(
             documentId,
             weight
         );
     }
 
     @Override
-    public DocumentWeight createDocumentWeight(String term, float weight) {
-        return new DocumentWeight(
-            weight
-        );
-    }
-
-    @Override
-    public BaseIndexer<TermWithInfo<Float>, DocumentWithInfo<DocumentWeight>> createIndexer(
-        Map<TermWithInfo<Float>, List<DocumentWithInfo<DocumentWeight>>> loadedIndex) {
+    public BaseIndexer<String, Float, Document<Float>, TermInfoWithIDF<Float, Document<Float>>> createIndexer(Map<String, TermInfoWithIDF<Float, Document<Float>>> loadedIndex) {
         return new WeightsIndexer(this.calculations, loadedIndex);
     }
 }

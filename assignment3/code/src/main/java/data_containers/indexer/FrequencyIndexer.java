@@ -1,10 +1,9 @@
 package data_containers.indexer;
 
+import data_containers.indexer.structures.Document;
 import data_containers.indexer.structures.DocumentWithInfo;
-import data_containers.indexer.structures.SimpleTerm;
+import data_containers.indexer.structures.TermInfoBase;
 
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -12,24 +11,30 @@ import java.util.Map;
  *  stores the number of times a specific term appeared for
  *  a given document
  */
-public class FrequencyIndexer extends BaseIndexer<SimpleTerm, DocumentWithInfo<Integer>> {
+public class FrequencyIndexer extends BaseIndexer<
+    String,
+    Integer,
+    Document<Integer>,
+    TermInfoBase<Integer, Document<Integer>>> {
 
     /**
      * Default constructor.
      */
     public FrequencyIndexer() {
         super();
-        dummyTerm = new SimpleTerm();
     }
 
-    public FrequencyIndexer(Map<SimpleTerm, List<DocumentWithInfo<Integer>>> loadedIndex) {
+    public FrequencyIndexer(Map<String, TermInfoBase<Integer, Document<Integer>>> loadedIndex) {
         super(loadedIndex);
-        dummyTerm = new SimpleTerm();
     }
 
     @Override
-    public BaseIndexer<SimpleTerm, DocumentWithInfo<Integer>> createIndexer(
-        Map<SimpleTerm, List<DocumentWithInfo<Integer>>> loadedIndex) {
+    public BaseIndexer<
+        String,
+        Integer,
+        Document<Integer>,
+        TermInfoBase<Integer, Document<Integer>>
+        > createIndexer(Map<String, TermInfoBase<Integer, Document<Integer>>> loadedIndex) {
         return new FrequencyIndexer(loadedIndex);
     }
 
@@ -41,16 +46,14 @@ public class FrequencyIndexer extends BaseIndexer<SimpleTerm, DocumentWithInfo<I
      */
     protected void insertDocument(int documentId, Map<String, Integer> frequencies) {
         frequencies.forEach((term, count) -> {
-            dummyTerm.setTerm(term);
+            TermInfoBase<Integer, Document<Integer>> termInfo = invertedIndex.get(term);
 
-            List<DocumentWithInfo<Integer>> postingList = invertedIndex.get(dummyTerm);
-
-            if (postingList == null) {
-                postingList = new LinkedList<>();
-                invertedIndex.put(new SimpleTerm(term), postingList);
+            if (termInfo == null) {
+                termInfo = new TermInfoBase<>();
+                invertedIndex.put(term, termInfo);
             }
 
-            postingList.add(new DocumentWithInfo<>(documentId, count));
+            termInfo.addToPostingList(new Document<>(documentId, count));
         });
 
     }

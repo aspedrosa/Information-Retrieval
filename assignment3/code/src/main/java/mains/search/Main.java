@@ -1,5 +1,6 @@
 package mains.search;
 
+import data_containers.DocumentRegistry;
 import data_containers.indexer.WeightsAndPositionsIndexer;
 import data_containers.indexer.WeightsIndexer;
 import io.data_containers.loaders.bulk_load.DocRegBinaryBulkLoader;
@@ -129,6 +130,7 @@ public class Main {
 
         try {
             Files.lines(Paths.get("queries.txt")).forEach(query -> {
+                System.out.println(query);
                 searcher.queryIndex(query);
             });
         } catch (IOException e) {

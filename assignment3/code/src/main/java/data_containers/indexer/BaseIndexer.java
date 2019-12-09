@@ -1,9 +1,8 @@
 package data_containers.indexer;
 
 import data_containers.indexer.post_indexing_actions.PostIndexingActions;
-import data_containers.indexer.structures.BaseDocument;
-import data_containers.indexer.structures.BaseTerm;
-import data_containers.indexer.structures.Block;
+import data_containers.indexer.structures.Document;
+import data_containers.indexer.structures.TermInfoBase;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -16,36 +15,33 @@ import java.util.Map;
  * @param <T> Type of the terms
  * @param <D> Type of the documents
  */
-public abstract class BaseIndexer<T extends Block & BaseTerm, D extends Block & BaseDocument>
-    implements IndexerProvider<T, D> {
+public abstract class BaseIndexer<
+    T extends Comparable<T>,
+    W extends Number,
+    D extends Document<W>,
+    I extends TermInfoBase<W, D>
+    >
+    implements IndexerProvider<T, W, D, I> {
 
     /**
      * The main data structure of the index.
      * Has the association between terms and the documents that
      *  contains it
      */
-    protected Map<T, List<D>> invertedIndex;
+    protected Map<T, I> invertedIndex;
 
-    protected PostIndexingActions<T, D> postIndexingActions;
-
-    /**
-     * Used to improve some performance. Since blocks' hashcode()
-     *  and compareto() methods only take in account the key
-     *  we can use the same object and change the key to get
-     *  the posting list of a specific term
-     */
-    protected T dummyTerm;
+    protected PostIndexingActions<W, D, I> postIndexingActions;
 
     /**
      * Getter for the invertedIndex
      *
      * @return an unmodifiable version of the invertedIndex
      */
-    public Map<T, List<D>> getInvertedIndex() {
+    public Map<T, I> getInvertedIndex() {
         return Collections.unmodifiableMap(invertedIndex);
     }
 
-    public PostIndexingActions<T, D> getPostIndexingActions() {
+    public PostIndexingActions<W, D, I> getPostIndexingActions() {
         return postIndexingActions;
     }
 
@@ -58,7 +54,7 @@ public abstract class BaseIndexer<T extends Block & BaseTerm, D extends Block & 
         postIndexingActions = null;
     }
 
-    protected BaseIndexer(Map<T, List<D>> loadedIndex) {
+    protected BaseIndexer(Map<T, I> loadedIndex) {
         invertedIndex = loadedIndex;
         postIndexingActions = null;
     }
@@ -70,12 +66,12 @@ public abstract class BaseIndexer<T extends Block & BaseTerm, D extends Block & 
      * @param postIndexingActions actions to apply after indexing
      *  and before persisting
      */
-    public BaseIndexer(PostIndexingActions<T, D> postIndexingActions) {
+    public BaseIndexer(PostIndexingActions<W, D, I> postIndexingActions) {
         this.invertedIndex = new HashMap<>();
         this.postIndexingActions = postIndexingActions;
     }
 
-    public BaseIndexer(PostIndexingActions<T, D> postIndexingActions, Map<T, List<D>> loadedIndex) {
+    public BaseIndexer(PostIndexingActions<W, D, I> postIndexingActions, Map<T, I> loadedIndex) {
         this.invertedIndex = loadedIndex;
         this.postIndexingActions = postIndexingActions;
     }
@@ -114,10 +110,8 @@ public abstract class BaseIndexer<T extends Block & BaseTerm, D extends Block & 
      */
     protected abstract void insertDocument(int documentId, Map<String, Integer> frequencies);
 
-    public List<D> getPostingList(String term) {
-        dummyTerm.setTerm(term);
-
-        return invertedIndex.get(dummyTerm);
+    public I getTermInfo(T term) {
+        return invertedIndex.get(term);
     }
 
     /**
