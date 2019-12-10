@@ -4,6 +4,7 @@ import data_containers.indexer.post_indexing_actions.PostIndexingActions;
 import data_containers.indexer.structures.Document;
 import data_containers.indexer.structures.TermInfoBase;
 
+import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -12,11 +13,13 @@ import java.util.Map;
 /**
  * Base class of all indexers
  *
- * @param <T> Type of the terms
- * @param <D> Type of the documents
+ * @param <T> type of the terms
+ * @param <W> type of the document weight
+ * @param <D> type of the documents
+ * @param <I> type of info related to the term
  */
 public abstract class BaseIndexer<
-    T extends Comparable<T>,
+    T extends Comparable<T> & Serializable,
     W extends Number,
     D extends Document<W>,
     I extends TermInfoBase<W, D>
@@ -30,6 +33,10 @@ public abstract class BaseIndexer<
      */
     protected Map<T, I> invertedIndex;
 
+    /**
+     * Actions to apply before persisting the index to disk
+     *  during indexing
+     */
     protected PostIndexingActions<W, D, I> postIndexingActions;
 
     /**
@@ -41,6 +48,9 @@ public abstract class BaseIndexer<
         return Collections.unmodifiableMap(invertedIndex);
     }
 
+    /**
+     * Getter for the post indexing actions field
+     */
     public PostIndexingActions<W, D, I> getPostIndexingActions() {
         return postIndexingActions;
     }
@@ -54,6 +64,9 @@ public abstract class BaseIndexer<
         postIndexingActions = null;
     }
 
+    /**
+     * Constructor used to create a new indexer after loading from disk
+     */
     protected BaseIndexer(Map<T, I> loadedIndex) {
         invertedIndex = loadedIndex;
         postIndexingActions = null;
@@ -71,6 +84,10 @@ public abstract class BaseIndexer<
         this.postIndexingActions = postIndexingActions;
     }
 
+    /**
+     * Constructor used to create a new indexer after loading from disk
+     *  having a post indexing actions associated
+     */
     public BaseIndexer(PostIndexingActions<W, D, I> postIndexingActions, Map<T, I> loadedIndex) {
         this.invertedIndex = loadedIndex;
         this.postIndexingActions = postIndexingActions;

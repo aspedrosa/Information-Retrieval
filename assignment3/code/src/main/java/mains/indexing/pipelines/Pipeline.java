@@ -11,6 +11,7 @@ import parsers.files.FileParser;
 import tokenizer.BaseTokenizer;
 
 import java.io.IOException;
+import java.io.Serializable;
 
 /**
  * Base class of all pipelines. On this class its defined the
@@ -26,7 +27,7 @@ import java.io.IOException;
  * @param <D> type of the documents
  */
 public abstract class Pipeline<
-    T extends Comparable<T>,
+    T extends Comparable<T> & Serializable,
     W extends Number,
     D extends Document<W>,
     I extends TermInfoBase<W, D>

@@ -1,6 +1,8 @@
 package data_containers.indexer.structures;
 
-public class Document<W extends Number> {
+import java.io.Serializable;
+
+public class Document<W extends Number & Serializable> implements Serializable {
 
     protected int docId;
 

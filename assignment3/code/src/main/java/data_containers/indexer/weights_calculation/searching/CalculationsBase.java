@@ -12,9 +12,9 @@ public interface CalculationsBase<
     D extends Document<W>,
     I extends TermInfoBase<W, D>> {
 
-    Map<T, Float> calculateTermFrequency(List<T> terms);
+    Map<T, Float> calculateTermFrequencyWeights(List<T> terms);
 
-    float applyDocumentFrequency(float termFrequency, I termInfo);
+    float applyDocumentFrequencyWeights(float termFrequency, I termInfo);
 
     float applyNormalization(float weight);
 

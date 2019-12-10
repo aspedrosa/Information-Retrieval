@@ -11,6 +11,7 @@ import parsers.files.FileParser;
 import tokenizer.BaseTokenizer;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
@@ -20,7 +21,7 @@ import java.util.Map;
  *  single file
  */
 public class SimplePipeline<
-    T extends Comparable<T>,
+    T extends Comparable<T> & Serializable,
     W extends Number,
     D extends data_containers.indexer.structures.Document<W>,
     I extends TermInfoBase<W, D>

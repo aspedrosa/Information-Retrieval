@@ -21,7 +21,7 @@ import parsers.corpus.ResolveByExtension;
 import parsers.documents.TrecAsciiMedline2004DocParser;
 import parsers.files.TrecAsciiMedline2004FileParser;
 import tokenizer.BaseTokenizer;
-import tokenizer.SimpleTokenizer;
+import tokenizer.AdvancedTokenizer;
 import tokenizer.linguistic_rules.LinguisticRule;
 import tokenizer.linguistic_rules.MinLengthRule;
 import tokenizer.linguistic_rules.SnowballStemmerRule;
@@ -55,7 +55,8 @@ public class Main {
      *  <li>1. Parse program options and arguments</li>
      *  <li>2. Instantiate both an indexer and tokenizer</li>
      *  <li>3. Create a CorpusReader</li>
-     *  <li>4. Create and execute a pipeline</li>
+     *  <li>4. Create data folders</li>
+     *  <li>5. Create and execute a pipeline</li>
      * </ul>
      *
      * Exit codes:
@@ -88,10 +89,12 @@ public class Main {
 
         // set relevant fields to parse from the TrecAsciiMedline2004's documents
         TrecAsciiMedline2004DocParser.addFieldToSave("TI");
+        TrecAsciiMedline2004DocParser.addFieldToSave("AB");
         TrecAsciiMedline2004DocParser.addFieldToSave("PMID");
 
-        int maxDocRegFileSize = parsedArgs.getInt("maxDocRegFileSize") * 1024 * 1024;
-        int maxIndexFileSize = parsedArgs.getInt("maxIndexFileSize") * 1024 * 1024;
+        int maxDocRegSize = parsedArgs.getInt("maxDocRegsSize") * 1024 * 1024;
+        int maxIndexSize = parsedArgs.getInt("maxIndexersSize") * 1024 * 1024;
+        float maxLoadFactor = parsedArgs.getFloat("maxLoadFactor");
 
         // create an advanced tokenizer
         Set<String> stopWords = readStopWordsFile(parsedArgs.getString("stopWordsFilename"));
@@ -101,20 +104,20 @@ public class Main {
         rules.add(new SnowballStemmerRule());
         rules.add(new MinLengthRule(3));
 
-        BaseTokenizer tokenizer = new SimpleTokenizer(rules);
+        BaseTokenizer tokenizer = new AdvancedTokenizer(rules);
 
         System.out.println("Created the Advanced tokenizer");
 
         // create folders to save the data
-        String outputFolder = parsedArgs.getString("outputFolder") + "/";
-        String metadataFile = outputFolder + "METADATA";
-        String documentRegistryFolder = outputFolder + "documentRegistry/";
-        String indexerFolder = outputFolder + "indexer/";
-        String tmpFolder = outputFolder + "tmp/";
+        String dataFolder = parsedArgs.getString("dataFolder") + "/";
+        String metadataFile = dataFolder + "METADATA";
+        String documentRegistryFolder = dataFolder + "documentRegistry/";
+        String indexerFolder = dataFolder + "indexer/";
+        String tmpFolder = dataFolder + "tmp/";
         String[] dataFoldersName = new String[] {documentRegistryFolder, indexerFolder, tmpFolder};
         for (String folder : dataFoldersName) {
-            File dataFolder = new File(folder);
-            dataFolder.mkdirs();
+            File subDataFolder = new File(folder);
+            subDataFolder.mkdirs();
         }
 
         // warn if data folders aren't empty
@@ -144,15 +147,15 @@ public class Main {
                 indexer,
                 corpusReader,
                 tmpFolder,
-                new ObjectStreamPersister<>(documentRegistryFolder, false, maxDocRegFileSize),
+                new ObjectStreamPersister<>(documentRegistryFolder, false, maxDocRegSize),
                 new OutputStreamPersister<>(
                     indexerFolder,
                     false,
-                    maxIndexFileSize,
+                    maxIndexSize,
                     new WeightsAndPositionStrategy()
                 ),
                 new BinaryMetadataManager(metadataFile),
-                parsedArgs.getFloat("maxLoadFactor")
+                maxLoadFactor
             );
 
         }
@@ -167,15 +170,15 @@ public class Main {
                 indexer,
                 corpusReader,
                 tmpFolder,
-                new ObjectStreamPersister<>(documentRegistryFolder, false, maxDocRegFileSize),
+                new ObjectStreamPersister<>(documentRegistryFolder, false, maxDocRegSize),
                 new OutputStreamPersister<>(
                     indexerFolder,
                     false,
-                    maxIndexFileSize,
+                    maxIndexSize,
                     new WeightStrategy()
                 ),
                 new BinaryMetadataManager(metadataFile),
-                parsedArgs.getFloat("maxLoadFactor")
+                maxLoadFactor
             );
         }
 
@@ -230,14 +233,14 @@ public class Main {
             .build()
             .description(
                 "Parses a set of files that contain documents, indexes those documents" +
-                " using a frequency indexer by default and stores the index to a file"
+                " using a indexer with weights by default and stores the index to a file"
             );
 
         argsParser
             .addArgument("stopWordsFilename")
             .type(String.class)
             .action(Arguments.store())
-            .help("path to file containing the stop words");
+            .help("Path to file containing the stop words");
 
         argsParser
             .addArgument("corpusFolder")
@@ -245,9 +248,10 @@ public class Main {
             .help("Path to folder containing files with documents to index");
 
         argsParser
-            .addArgument("outputFolder")
+            .addArgument("dataFolder")
             .type(String.class)
-            .help("TODO");
+            .help("Path to folder to store indexers, document registries and" +
+                  "the METADATA file");
 
         argsParser
             .addArgument("-p")
@@ -266,20 +270,20 @@ public class Main {
                 "Should be a number between 0 and 1. Default 0.80");
 
         argsParser
-            .addArgument("--max-index-file-size")
-            .dest("maxIndexFileSize")
+            .addArgument("--max-indexers-size")
+            .dest("maxIndexersSize")
             .type(Integer.class)
             .action(Arguments.store())
-            .setDefault(100)
-            .help("TODO");
+            .setDefault(50)
+            .help("Maximum size in memory for a indexer in MB. Default 50");
 
         argsParser
-            .addArgument("--max-doc-reg-file-size")
-            .dest("maxDocRegFileSize")
+            .addArgument("--max-doc-regs-size")
+            .dest("maxDocRegsSize")
             .type(Integer.class)
             .action(Arguments.store())
-            .setDefault(100)
-            .help("TODO");
+            .setDefault(50)
+            .help("Maximum size in memory for a document registry in MB. Default 50");
 
         Namespace parsedArgs = null;
         try {
@@ -294,6 +298,14 @@ public class Main {
             System.err.println("ERROR maximum load factor should be a floating point" +
                 " between 0 and 1");
             System.exit(1);
+        }
+
+        for (String varName : new String[] {"maxIndexersSize", "maxDocRegsSize"}) {
+            Integer varValue = parsedArgs.getInt(varName);
+            if (varValue != null && varValue <= 0) {
+                System.err.println("ERROR " + varName + " should be a integer" +
+                    " greater than 0");
+            }
         }
 
         return parsedArgs;

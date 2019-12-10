@@ -14,6 +14,7 @@ import parsers.files.FileParser;
 import tokenizer.BaseTokenizer;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -30,7 +31,7 @@ import java.util.Map;
  * @param <D> type of the documents
  */
 public class SPIMIPipeline<
-    T extends Comparable<T>,
+    T extends Comparable<T> & Serializable,
     W extends Number,
     D extends Document<W>,
     I extends TermInfoBase<W, D>

@@ -3,12 +3,13 @@ package data_containers.indexer.weights_calculation.searching;
 import data_containers.indexer.structures.Document;
 import data_containers.indexer.structures.TermInfoWithIDF;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class LTC<
-    T extends Comparable<T>,
+    T extends Comparable<T> & Serializable,
     W extends Number,
     D extends Document<W>,
     I extends TermInfoWithIDF<W, D>
@@ -17,7 +18,7 @@ public class LTC<
     private float cosineNormalization = 0;
 
     @Override
-    public Map<T, Float> calculateTermFrequency(List<T> terms) {
+    public Map<T, Float> calculateTermFrequencyWeights(List<T> terms) {
         Map<T, Float> termFrequencies = new HashMap<>();
 
         for (T term : terms) {
@@ -44,7 +45,7 @@ public class LTC<
     }
 
     @Override
-    public float applyDocumentFrequency(float termFrequency, I termInfo) {
+    public float applyDocumentFrequencyWeights(float termFrequency, I termInfo) {
         float weight = termFrequency * termInfo.getIdf();
 
         cosineNormalization += Math.pow(weight, 2);
