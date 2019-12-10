@@ -127,6 +127,9 @@ public abstract class BaseIndexer<
      */
     protected abstract void insertDocument(int documentId, Map<String, Integer> frequencies);
 
+    /**
+     * Consults the inverted index to get the information associated with a term
+     */
     public I getTermInfo(T term) {
         return invertedIndex.get(term);
     }

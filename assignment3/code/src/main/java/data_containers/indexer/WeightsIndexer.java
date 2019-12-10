@@ -6,6 +6,9 @@ import data_containers.indexer.weights_calculation.indexing.CalculationsBase;
 
 import java.util.Map;
 
+/**
+ * Specific type a indexer with ranking weights
+ */
 public class WeightsIndexer extends WeightsIndexerBase<Document<Float>> {
 
     /**
@@ -15,6 +18,11 @@ public class WeightsIndexer extends WeightsIndexerBase<Document<Float>> {
         super(calculations);
     }
 
+    /**
+     * Constructor to create indexers while searching
+     *
+     * @param loadedIndex the loaded inverted index
+     */
     public WeightsIndexer(
         CalculationsBase calculations,
         Map<String, TermInfoWithIDF<Float, Document<Float>>> loadedIndex

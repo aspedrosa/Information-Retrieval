@@ -3,6 +3,14 @@ package data_containers.indexer.weights_calculation.indexing;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Calculates the document weights considering:
+ * <ul>
+ *     <li>logarithmic term frequency</li>
+ *     <li>no document frequency</li>
+ *     <li>cosine normalization</li>
+ * </ul>
+ */
 public class LNC implements CalculationsBase {
 
     private float cosineNormalization;

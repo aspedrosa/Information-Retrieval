@@ -1,8 +1,12 @@
 package io.data_containers.loaders.bulk_load;
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -17,8 +21,8 @@ public class DocRegBinaryBulkLoader extends BulkLoader<Integer, String> {
     @Override
     public Map<Integer, String> load(String filename) throws IOException {
         ObjectInputStream input = new ObjectInputStream(
-            new FileInputStream(
-                folder + filename
+            new ByteArrayInputStream(
+                Files.readAllBytes(Paths.get(folder + filename))
             )
         );
 

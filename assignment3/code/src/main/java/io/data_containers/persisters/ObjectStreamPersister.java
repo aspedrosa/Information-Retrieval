@@ -21,8 +21,11 @@ public class ObjectStreamPersister<K extends Comparable, V> extends BasePersiste
      */
     private ObjectOutputStream currentOutput;
 
+    private boolean wroteNull;
+
     public ObjectStreamPersister(String outputFolder, boolean duplicates, int limitFileSize) {
         super(outputFolder, duplicates, limitFileSize);
+        wroteNull = false;
     }
 
     @Override
@@ -39,6 +42,8 @@ public class ObjectStreamPersister<K extends Comparable, V> extends BasePersiste
                 )
             )
         );
+
+        wroteNull = false;
     }
 
     /**
@@ -56,12 +61,16 @@ public class ObjectStreamPersister<K extends Comparable, V> extends BasePersiste
 
         if (lastEntry) {
             currentOutput.writeObject(null);
+            wroteNull = true;
         }
     }
 
     @Override
     public void close() throws IOException {
         if (currentOutput != null) {
+            if (!wroteNull) {
+                currentOutput.writeObject(null);
+            }
             currentOutput.close();
             currentOutput = null;
         }

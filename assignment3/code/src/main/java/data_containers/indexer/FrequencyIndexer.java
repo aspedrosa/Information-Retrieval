@@ -1,7 +1,6 @@
 package data_containers.indexer;
 
 import data_containers.indexer.structures.Document;
-import data_containers.indexer.structures.DocumentWithInfo;
 import data_containers.indexer.structures.TermInfoBase;
 
 import java.util.Map;
@@ -18,12 +17,15 @@ public class FrequencyIndexer extends BaseIndexer<
     TermInfoBase<Integer, Document<Integer>>> {
 
     /**
-     * Default constructor.
+     * Constructor used during indexing
      */
     public FrequencyIndexer() {
         super();
     }
 
+    /**
+     * Constructor used during searching
+     */
     public FrequencyIndexer(Map<String, TermInfoBase<Integer, Document<Integer>>> loadedIndex) {
         super(loadedIndex);
     }

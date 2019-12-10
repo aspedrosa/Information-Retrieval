@@ -4,11 +4,10 @@ import data_containers.indexer.structures.DocumentWithInfo;
 import data_containers.indexer.structures.TermInfoWithIDF;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class WeightsAndPositionsIndexerLoader extends LinesLoader<
     String,
@@ -23,13 +22,15 @@ public class WeightsAndPositionsIndexerLoader extends LinesLoader<
     }
 
     @Override
-    public Map<String, TermInfoWithIDF<Float, DocumentWithInfo<Float, List<Integer>>>> parseLines(Stream<String> lines) {
-        return lines.map(line -> {
+    public Map<String, TermInfoWithIDF<Float, DocumentWithInfo<Float, List<Integer>>>> parseLines(List<String> lines) {
+        Map<String, TermInfoWithIDF<Float, DocumentWithInfo<Float, List<Integer>>>> invertedIndex = new HashMap<>(lines.size());
+
+        for (String line : lines) {
             String[] elements = separatorsRegex.split(line);
 
             Entry<String, TermInfoWithIDF<Float, DocumentWithInfo<Float, List<Integer>>>> entry = new Entry<>();
 
-            entry.setKey(elements[0]);
+            String term = elements[0];
 
             List<DocumentWithInfo<Float, List<Integer>>> postingList = new ArrayList<>((elements.length - 2) / 3);
 
@@ -50,16 +51,16 @@ public class WeightsAndPositionsIndexerLoader extends LinesLoader<
                 );
             }
 
-            entry.setValue(new TermInfoWithIDF<>(
-                postingList,
-                Float.parseFloat(elements[1]) // idf
-            ));
+            invertedIndex.put(
+                term,
+                new TermInfoWithIDF<>(
+                    postingList,
+                    Float.parseFloat(elements[1]) // idf
+                )
+            );
+        };
 
-            return entry;
-        }).collect(Collectors.toMap(
-            Entry::getKey,
-            Entry::getValue
-        ));
+        return invertedIndex;
     }
 
 }

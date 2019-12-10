@@ -52,7 +52,9 @@ public class ObjectStreamLoader<K, V> extends LazyLoader<K, V> {
                         return false;
                     }
                 } catch (IOException | ClassNotFoundException e) {
+                    System.err.println("ERROR while reading object from file " + filename);
                     e.printStackTrace();
+                    System.exit(2);
                 }
 
                 return true;

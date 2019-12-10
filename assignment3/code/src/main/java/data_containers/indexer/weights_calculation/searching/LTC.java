@@ -8,6 +8,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Calculates the document weights considering:
+ * <ul>
+ *     <li>logarithmic term frequency</li>
+ *     <li>idf document frequency</li>
+ *     <li>cosine normalization</li>
+ * </ul>
+ *
+ * @param <T> type of the term
+ * @param <W> type of the weight
+ * @param <D> type of the document
+ * @param <I> type of the term information
+ */
 public class LTC<
     T extends Comparable<T> & Serializable,
     W extends Number,

@@ -4,6 +4,7 @@ import data_containers.indexer.structures.Document;
 import data_containers.indexer.structures.TermInfoWithIDF;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -22,13 +23,15 @@ public class WeightsIndexerLoader extends LinesLoader<
     }
 
     @Override
-    public Map<String, TermInfoWithIDF<Float, Document<Float>>> parseLines(Stream<String> lines) {
-        return lines.map(line -> {
+    public Map<String, TermInfoWithIDF<Float, Document<Float>>> parseLines(List<String> lines) {
+        Map<String, TermInfoWithIDF<Float, Document<Float>>> invertedIndex = new HashMap<>(lines.size());
+
+        for (String line : lines) {
             String[] elements = separatorsRegex.split(line);
 
             Entry<String, TermInfoWithIDF<Float, Document<Float>>> entry = new Entry<>();
 
-            entry.setKey(elements[0]);
+            String term = elements[0];
 
             List<Document<Float>> postingList = new ArrayList<>((elements.length - 2) / 2);
 
@@ -41,16 +44,16 @@ public class WeightsIndexerLoader extends LinesLoader<
                 );
             }
 
-            entry.setValue(new TermInfoWithIDF<>(
-                postingList,
-                Float.parseFloat(elements[1]) // idf
-            ));
+            invertedIndex.put(
+                term,
+                new TermInfoWithIDF<>(
+                    postingList,
+                    Float.parseFloat(elements[1]) // idf
+                )
+            );
+        };
 
-            return entry;
-        }).collect(Collectors.toMap(
-            Entry::getKey,
-           Entry::getValue
-        ));
+        return invertedIndex;
     }
 
 }

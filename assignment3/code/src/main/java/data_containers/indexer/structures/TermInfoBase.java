@@ -4,6 +4,13 @@ import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.List;
 
+/**
+ * Class to hold information relative to a term
+ * This class will be used as value for the inverted index
+ *
+ * @param <W> type of the term
+ * @param <D> type of the document
+ */
 public class TermInfoBase<W extends Number, D extends Document<W>> implements Serializable {
 
     private List<D> postingList;

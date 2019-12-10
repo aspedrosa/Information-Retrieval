@@ -113,7 +113,6 @@ public class Searcher<D extends Document<Float>,
 
                 terms.add(term);
                 postingLists.add(termInfo.getPostingList());
-                System.out.println("indexer in memory");
             }
             else {
                 // not in memory
@@ -174,6 +173,8 @@ public class Searcher<D extends Document<Float>,
                 calculations.applyNormalization(termFrequencyWeights.get(term))
             );
         });
+
+        calculations.resetNormalization();
     }
 
     private List<DocumentRank> getRelevantDocuments(List<String> terms, List<List<D>> postingLists, Map<String, Float> termFrequencyWeights) {
@@ -249,8 +250,6 @@ public class Searcher<D extends Document<Float>,
                 docRegsRanks.put(docRegEntry.getKey(), docRegsRanks.get(docRegEntry.getKey()) + 1);
 
                 relevantDocumentsIdentifiers.add(identifier);
-
-                System.out.println("doc reg in memory");
             }
             else {
                 // check disk
@@ -271,13 +270,7 @@ public class Searcher<D extends Document<Float>,
 
                 docRegsInMemory.put(docRegFilenameEntry.getKey(), documentRegistry);
 
-                Integer rank = docRegsRanks.get(docRegFilenameEntry.getKey());
-                if (rank == null) {
-                    docRegsRanks.put(docRegFilenameEntry.getKey(), 1);
-                }
-                else {
-                    docRegsRanks.put(docRegFilenameEntry.getKey(), rank + 1);
-                }
+                docRegsRanks.merge(docRegFilenameEntry.getKey(), 1, Integer::sum);
 
                 identifier = documentRegistry.translateDocId(docId);
 
@@ -308,8 +301,6 @@ public class Searcher<D extends Document<Float>,
             !toSave.contains(key)
         );
 
-        System.out.println("cleared mem of indexers");
-
         System.gc();
     }
 
@@ -332,8 +323,6 @@ public class Searcher<D extends Document<Float>,
         docRegsInMemory.keySet().removeIf(key ->
             !toSave.contains(key)
         );
-
-        System.out.println("cleared mem of doc regs");
 
         System.gc();
     }

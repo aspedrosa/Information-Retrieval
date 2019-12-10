@@ -32,6 +32,11 @@ public class WeightsAndPositionsIndexer extends WeightsIndexerBase<DocumentWithI
         auxTermsPositions = new HashMap<>();
     }
 
+    /**
+     * Constructor used to create an indexer class during while searching
+     *
+     * @param loadedIndex the inverted index loaded
+     */
     protected WeightsAndPositionsIndexer(
         CalculationsBase calculations,
         Map<String, TermInfoWithIDF<Float, DocumentWithInfo<Float, List<Integer>>>> loadedIndex

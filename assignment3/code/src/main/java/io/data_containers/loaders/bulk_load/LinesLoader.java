@@ -3,8 +3,8 @@ package io.data_containers.loaders.bulk_load;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 
 public abstract class LinesLoader<K, V> extends BulkLoader<K, V> {
 
@@ -14,11 +14,11 @@ public abstract class LinesLoader<K, V> extends BulkLoader<K, V> {
 
     @Override
     public Map<K, V> load(String filename) throws IOException {
-        Stream<String> lines = Files.lines(Paths.get(folder + filename));
+        List<String> lines = Files.readAllLines(Paths.get(folder + filename));
 
         return parseLines(lines);
     }
 
-    public abstract Map<K,V> parseLines(Stream<String> lines);
+    public abstract Map<K,V> parseLines(List<String> lines);
 
 }
