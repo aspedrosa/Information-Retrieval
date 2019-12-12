@@ -14,7 +14,7 @@ import java.util.NoSuchElementException;
  * @param <K> type of the keys
  * @param <V> type of the values
  */
-public abstract class LazyLoader<K, V> implements BaseLoader<K, V> {
+public abstract class LazyLoader<K, V> implements BaseLoader {
 
     /**
      * Descendent classes should implement this method

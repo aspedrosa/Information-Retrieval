@@ -1,5 +1,5 @@
 /**
  * Classes with different ways to persist the
- *  internal structures of the BasePersister class
+ *  a list of entries or a map
  */
 package io.data_containers.persisters;

@@ -99,6 +99,7 @@
                         </goals>
                         <configuration>
                             <show>private</show>
+                            <additionalOptions>-Xdoclint:none</additionalOptions>
                         </configuration>
                     </execution>
                 </executions>

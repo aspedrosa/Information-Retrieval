@@ -1,5 +1,6 @@
 /**
- * Class with main method and IR indexing pipelines
+ * Classes with the main methods for the
+ *  indexing and search pipeline
  */
 package mains;
 

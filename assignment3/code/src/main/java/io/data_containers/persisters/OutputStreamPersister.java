@@ -27,10 +27,9 @@ public class OutputStreamPersister<K extends Comparable, V> extends BasePersiste
     private OutputStreamStrategy<K, V> strategy;
 
     public OutputStreamPersister(String outputFolder,
-                                 boolean duplicates,
                                  int limitFileSize,
                                  OutputStreamStrategy<K, V> strategy) {
-        super(outputFolder, duplicates, limitFileSize);
+        super(outputFolder, limitFileSize);
         this.strategy = strategy;
     }
 

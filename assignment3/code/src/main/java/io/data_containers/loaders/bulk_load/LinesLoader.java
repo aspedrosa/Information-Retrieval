@@ -13,12 +13,12 @@ public abstract class LinesLoader<K, V> extends BulkLoader<K, V> {
     }
 
     @Override
-    public Map<K, V> load(String filename) throws IOException {
+    public Map<K, Object> load(String filename) throws IOException {
         List<String> lines = Files.readAllLines(Paths.get(folder + filename));
 
         return parseLines(lines);
     }
 
-    public abstract Map<K,V> parseLines(List<String> lines);
+    public abstract Map<K, Object> parseLines(List<String> lines);
 
 }

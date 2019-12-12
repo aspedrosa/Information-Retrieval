@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -23,19 +24,38 @@ public class WeightsIndexerLoader extends LinesLoader<
     }
 
     @Override
-    public Map<String, TermInfoWithIDF<Float, Document<Float>>> parseLines(List<String> lines) {
-        Map<String, TermInfoWithIDF<Float, Document<Float>>> invertedIndex = new HashMap<>(lines.size());
+    public Map<String, Object> parseLines(List<String> lines) {
+        Map<String, Object> map = new ConcurrentHashMap<>(lines.size());
 
-        for (String line : lines) {
-            String[] elements = separatorsRegex.split(line);
+        lines.stream().parallel().forEach(line -> {
+            int twoPointsIdx = line.indexOf(':');
 
-            Entry<String, TermInfoWithIDF<Float, Document<Float>>> entry = new Entry<>();
+            map.put(
+                line.substring(0, twoPointsIdx),
+                line.substring(twoPointsIdx + 1)
+            );
+        });
 
-            String term = elements[0];
+        return map;
+    }
 
-            List<Document<Float>> postingList = new ArrayList<>((elements.length - 2) / 2);
+    @Override
+    public TermInfoWithIDF<Float, Document<Float>> getValue(Map<String, Object> loadedMap, String term) {
+        Object value = loadedMap.get(term);
 
-            for (int i = 2; i < elements.length; i += 2) {
+        if (value == null) {
+            return null;
+        }
+
+        if (value instanceof TermInfoWithIDF) {
+            return (TermInfoWithIDF<Float, Document<Float>>) value;
+        }
+        else {
+            String[] elements = separatorsRegex.split((String) value);
+
+            List<Document<Float>> postingList = new ArrayList<>((elements.length - 1) / 2);
+
+            for (int i = 1; i < elements.length; i += 2) {
                 postingList.add(
                     new Document<>(
                         Integer.parseInt(elements[i]), // docId
@@ -44,16 +64,15 @@ public class WeightsIndexerLoader extends LinesLoader<
                 );
             }
 
-            invertedIndex.put(
-                term,
-                new TermInfoWithIDF<>(
-                    postingList,
-                    Float.parseFloat(elements[1]) // idf
-                )
+            TermInfoWithIDF<Float, Document<Float>> termInfo = new TermInfoWithIDF<>(
+                postingList,
+                Float.parseFloat(elements[0]) // idf
             );
-        };
 
-        return invertedIndex;
+            loadedMap.put(term, termInfo);
+
+            return termInfo;
+        }
     }
 
 }

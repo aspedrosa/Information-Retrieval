@@ -1,17 +1,16 @@
 package io.data_containers.loaders.bulk_load;
 
+import data_containers.indexer.structures.Document;
 import data_containers.indexer.structures.DocumentWithInfo;
 import data_containers.indexer.structures.TermInfoWithIDF;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
-public class WeightsAndPositionsIndexerLoader extends LinesLoader<
-    String,
-    TermInfoWithIDF<Float, DocumentWithInfo<Float, List<Integer>>>> {
+public class WeightsAndPositionsIndexerLoader extends LinesLoader<String, TermInfoWithIDF<Float, DocumentWithInfo<Float, List<Integer>>>> {
 
     private static final Pattern separatorsRegex = Pattern.compile("[:;]");
 
@@ -22,19 +21,38 @@ public class WeightsAndPositionsIndexerLoader extends LinesLoader<
     }
 
     @Override
-    public Map<String, TermInfoWithIDF<Float, DocumentWithInfo<Float, List<Integer>>>> parseLines(List<String> lines) {
-        Map<String, TermInfoWithIDF<Float, DocumentWithInfo<Float, List<Integer>>>> invertedIndex = new HashMap<>(lines.size());
+    public Map<String, Object> parseLines(List<String> lines) {
+        Map<String, Object> map = new ConcurrentHashMap<>(lines.size());
 
-        for (String line : lines) {
-            String[] elements = separatorsRegex.split(line);
+        lines.stream().parallel().forEach(line -> {
+            int twoPointsIdx = line.indexOf(':');
 
-            Entry<String, TermInfoWithIDF<Float, DocumentWithInfo<Float, List<Integer>>>> entry = new Entry<>();
+            map.put(
+                line.substring(0, twoPointsIdx),
+                line.substring(twoPointsIdx + 1)
+            );
+        });
 
-            String term = elements[0];
+        return map;
+    }
 
-            List<DocumentWithInfo<Float, List<Integer>>> postingList = new ArrayList<>((elements.length - 2) / 3);
+    @Override
+    public TermInfoWithIDF<Float, DocumentWithInfo<Float, List<Integer>>> getValue(Map<String, Object> loadedMap, String term) {
+        Object value = loadedMap.get(term);
 
-            for (int i = 2; i < elements.length; i += 3) {
+        if (value == null) {
+            return null;
+        }
+
+        if (value instanceof TermInfoWithIDF) {
+            return (TermInfoWithIDF<Float, DocumentWithInfo<Float, List<Integer>>>) value;
+        }
+        else {
+            String[] elements = separatorsRegex.split((String) value);
+
+            List<DocumentWithInfo<Float, List<Integer>>> postingList = new ArrayList<>((elements.length - 1) / 3);
+
+            for (int i = 1; i < elements.length; i += 3) {
                 String[] positionsStrings = positionsSeparatorsRegex.split(elements[i + 2]);
 
                 List<Integer> positions = new ArrayList<>(positionsStrings.length);
@@ -51,16 +69,15 @@ public class WeightsAndPositionsIndexerLoader extends LinesLoader<
                 );
             }
 
-            invertedIndex.put(
-                term,
-                new TermInfoWithIDF<>(
-                    postingList,
-                    Float.parseFloat(elements[1]) // idf
-                )
+            TermInfoWithIDF<Float, DocumentWithInfo<Float, List<Integer>>> termInfo = new TermInfoWithIDF<>(
+                postingList,
+                Float.parseFloat(elements[0]) // idf
             );
-        };
 
-        return invertedIndex;
+            loadedMap.put(term, termInfo);
+
+            return termInfo;
+        }
     }
 
 }

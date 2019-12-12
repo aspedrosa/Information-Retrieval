@@ -84,7 +84,7 @@ public class SPIMIPipeline<
         this.maxLoadFactor = maxLoadFactor;
         this.tmpFolder = tmpFolder;
 
-        this.indexingTmpFilesPersister = new ObjectStreamPersister<>(tmpFolder, true, -1);
+        this.indexingTmpFilesPersister = new ObjectStreamPersister<>(tmpFolder, -1);
         this.indexingTmpFilesLoader = new ObjectStreamLoader<>();
     }
 
@@ -122,6 +122,7 @@ public class SPIMIPipeline<
                 }
 
                 indexer.clear();
+                documentRegistry.clear();
                 System.gc();
 
                 wroteToDisk = true;
@@ -137,6 +138,7 @@ public class SPIMIPipeline<
     @Override
     public void persistIndex() {
         try {
+            // since is the last time to write to the document registry it will call close internally
             documentRegistryPersister.persist(documentRegistry.getRegistry(), true);
         } catch (IOException e) {
             System.err.println("ERROR while persisting final part of the document registry to file");
@@ -146,6 +148,7 @@ public class SPIMIPipeline<
 
         if (wroteToDisk) {
             try {
+                // since is the last time to write to the indexer it will call close internally
                 indexingTmpFilesPersister.persist(indexer.getInvertedIndex(), true);
             } catch (IOException e) {
                 System.err.println("ERROR while persisting last temporary indexing file");
@@ -154,6 +157,7 @@ public class SPIMIPipeline<
             }
 
             indexer.clear();
+            documentRegistry.clear();
             System.gc();
         }
         else {
@@ -250,7 +254,7 @@ public class SPIMIPipeline<
             commonTermInfo.setPostingList(docs);
             // TODO WARNING here it is assumed that the data present on
             //  the term info structure beyond the posting list
-            //  is the same for the same terms
+            //  is the same for different termInfos
 
             entriesToWrite.add(new LazyLoader.Entry<>(term, commonTermInfo));}
 

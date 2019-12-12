@@ -23,8 +23,7 @@ public abstract class BaseIndexer<
     W extends Number,
     D extends Document<W>,
     I extends TermInfoBase<W, D>
-    >
-    implements IndexerProvider<T, W, D, I> {
+    > {
 
     /**
      * The main data structure of the index.
@@ -65,14 +64,6 @@ public abstract class BaseIndexer<
     }
 
     /**
-     * Constructor used to create a new indexer after loading from disk
-     */
-    protected BaseIndexer(Map<T, I> loadedIndex) {
-        invertedIndex = loadedIndex;
-        postIndexingActions = null;
-    }
-
-    /**
      * Constructor to define the a post indexing actions
      *  for the indexer
      *
@@ -81,15 +72,6 @@ public abstract class BaseIndexer<
      */
     public BaseIndexer(PostIndexingActions<W, D, I> postIndexingActions) {
         this.invertedIndex = new HashMap<>();
-        this.postIndexingActions = postIndexingActions;
-    }
-
-    /**
-     * Constructor used to create a new indexer after loading from disk
-     *  having a post indexing actions associated
-     */
-    public BaseIndexer(PostIndexingActions<W, D, I> postIndexingActions, Map<T, I> loadedIndex) {
-        this.invertedIndex = loadedIndex;
         this.postIndexingActions = postIndexingActions;
     }
 
@@ -126,13 +108,6 @@ public abstract class BaseIndexer<
      * @param frequencies frequencies for each term present on the document
      */
     protected abstract void insertDocument(int documentId, Map<String, Integer> frequencies);
-
-    /**
-     * Consults the inverted index to get the information associated with a term
-     */
-    public I getTermInfo(T term) {
-        return invertedIndex.get(term);
-    }
 
     /**
      * Resets the indexer internal structures. Used mainly to get same memory back.

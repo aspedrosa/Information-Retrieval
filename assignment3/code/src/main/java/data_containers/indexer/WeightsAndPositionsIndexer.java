@@ -1,7 +1,6 @@
 package data_containers.indexer;
 
 import data_containers.indexer.structures.DocumentWithInfo;
-import data_containers.indexer.structures.TermInfoWithIDF;
 import data_containers.indexer.weights_calculation.indexing.CalculationsBase;
 
 import java.util.ArrayList;
@@ -32,18 +31,6 @@ public class WeightsAndPositionsIndexer extends WeightsIndexerBase<DocumentWithI
         auxTermsPositions = new HashMap<>();
     }
 
-    /**
-     * Constructor used to create an indexer class during while searching
-     *
-     * @param loadedIndex the inverted index loaded
-     */
-    protected WeightsAndPositionsIndexer(
-        CalculationsBase calculations,
-        Map<String, TermInfoWithIDF<Float, DocumentWithInfo<Float, List<Integer>>>> loadedIndex
-        ) {
-        super(calculations, loadedIndex);
-    }
-
     @Override
     public DocumentWithInfo<Float, List<Integer>> createDocument(int documentId, float weight, String term) {
         return new DocumentWithInfo<>(
@@ -51,11 +38,6 @@ public class WeightsAndPositionsIndexer extends WeightsIndexerBase<DocumentWithI
             weight,
             auxTermsPositions.get(term)
         );
-    }
-
-    @Override
-    public BaseIndexer<String, Float, DocumentWithInfo<Float, List<Integer>>, TermInfoWithIDF<Float, DocumentWithInfo<Float, List<Integer>>>> createIndexer(Map<String, TermInfoWithIDF<Float, DocumentWithInfo<Float, List<Integer>>>> loadedIndex) {
-        return new WeightsAndPositionsIndexer(this.calculations, loadedIndex);
     }
 
     /**

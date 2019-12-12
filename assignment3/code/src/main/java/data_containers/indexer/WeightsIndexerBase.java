@@ -27,18 +27,6 @@ public abstract class WeightsIndexerBase<D extends Document<Float>>
         this.calculations = calculations;
     }
 
-    /**
-     * Constructor used to create new indexer while searching
-     *
-     * @param loadedIndex inverted index loaded
-     */
-    protected WeightsIndexerBase(
-        CalculationsBase calculations,
-        Map<String, TermInfoWithIDF<Float, D>> loadedIndex) {
-        super(new CalculateIDFAction<>(), loadedIndex);
-        this.calculations = calculations;
-    }
-
     @Override
     protected final void insertDocument(int documentId, Map<String, Integer> frequencies) {
         Map<String, Float> weights = calculations.calculateWeights(frequencies);

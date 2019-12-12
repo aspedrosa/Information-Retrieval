@@ -23,8 +23,8 @@ public class ObjectStreamPersister<K extends Comparable, V> extends BasePersiste
 
     private boolean wroteNull;
 
-    public ObjectStreamPersister(String outputFolder, boolean duplicates, int limitFileSize) {
-        super(outputFolder, duplicates, limitFileSize);
+    public ObjectStreamPersister(String outputFolder, int limitFileSize) {
+        super(outputFolder, limitFileSize);
         wroteNull = false;
     }
 

@@ -46,11 +46,8 @@ public abstract class BasePersister<K extends Comparable, V> implements Closeabl
      */
     protected List<String> firstKeys;
 
-    private boolean duplicates;
-
-    public BasePersister(String outputFolder, boolean duplicates, long limitFileSize) {
+    public BasePersister(String outputFolder, long limitFileSize) {
         this.outputFolder = outputFolder;
-        this.duplicates = duplicates;
         this.limitFileSize = limitFileSize;
 
         this.currentFileSize = 0;
@@ -108,7 +105,7 @@ public abstract class BasePersister<K extends Comparable, V> implements Closeabl
         for (int i = 0; i < sortedEntries.size(); i++) {
             long currentEntrySize = 0;
             if (limitFileSize > 0) {
-                currentEntrySize = meter.measureDeep(sortedEntries.get(i).getKey()) + meter.measureDeep(sortedEntries.get(i).getValue());
+                currentEntrySize = meter.measureDeep(sortedEntries.get(i));
 
                 if ( currentFileSize + currentEntrySize > limitFileSize ) {
                     close();

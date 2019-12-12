@@ -1,10 +1,9 @@
 package mains.search;
 
-import data_containers.DocumentRegistry;
 import data_containers.indexer.WeightsAndPositionsIndexer;
 import data_containers.indexer.WeightsIndexer;
 import data_containers.indexer.weights_calculation.searching.LTC;
-import io.data_containers.loaders.bulk_load.DocRegBinaryBulkLoader;
+import io.data_containers.loaders.bulk_load.DocRegTextBulkLoader;
 import io.data_containers.loaders.bulk_load.WeightsAndPositionsIndexerLoader;
 import io.data_containers.loaders.bulk_load.WeightsIndexerLoader;
 import io.metadata.BinaryMetadataManager;
@@ -14,6 +13,7 @@ import net.sourceforge.argparse4j.impl.Arguments;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
+import searcher.Evaluation;
 import searcher.Searcher;
 import tokenizer.AdvancedTokenizer;
 import tokenizer.BaseTokenizer;
@@ -26,12 +26,14 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
 /**
- * Class containing the main method
+ * Class containing the main method for the search pipeline
  */
 public class Main {
 
@@ -45,7 +47,8 @@ public class Main {
      *  <li>3. Instantiate the tokenizer</li>
      *  <li>4. Calculate the amount of indexers and document registries possible to hold in memory</li>
      *  <li>5. Instantiate the Searcher class</li>
-     *  <li>6. Responds the queries present on the "queries.txt" file</li>
+     *  <li>6. Responds the queries present on the queries file</li>
+     *  <li>7. Print average of several metrics</li>
      * </ul>
      *
      * Exit codes:
@@ -68,6 +71,7 @@ public class Main {
         TreeMap<Integer, String> docRegMetadata = new TreeMap<>();
         TreeMap<String, String> indexerMetadata = new TreeMap<>();
 
+        // load metadata
         try {
             metadataManager.loadMetadata(docRegMetadata, indexerMetadata);
         } catch (IOException e) {
@@ -86,6 +90,7 @@ public class Main {
 
         BaseTokenizer tokenizer = new AdvancedTokenizer(rules);
 
+        // calculate the maximum the amount of indexers and document registries to hold in memory
         int maxIndexersInMemory, maxDocRegsInMemory;
         {System.gc();
         Runtime runtime = Runtime.getRuntime();
@@ -95,59 +100,85 @@ public class Main {
         long memForDocRegs = (long) Math.floor(usableMem - memForIndexers);
         long memPerIndexer = parsedArgs.getInt("indexersSize") * 1024 * 1024;
         long memPerDocReg = parsedArgs.getInt("docRegsSize") * 1024 * 1024;
-        maxIndexersInMemory = (int) Math.floorDiv(memForIndexers, memPerIndexer);
-        maxDocRegsInMemory = (int) Math.floorDiv(memForDocRegs, memPerDocReg);}
+        maxIndexersInMemory = (int) Math.floorDiv(memForIndexers, memPerIndexer) - 1;
+        maxDocRegsInMemory = (int) Math.floorDiv(memForDocRegs, memPerDocReg) - 1;}
 
         int K = parsedArgs.getInt("K");
 
+        // instantiate the searcher class
         Searcher searcher;
         if (parsedArgs.getBoolean("useWeightsAndPositionsIndexer")) {
-            WeightsAndPositionsIndexer tmp = new WeightsAndPositionsIndexer(null);
-
             searcher = new Searcher(
                 tokenizer,
                 new LTC(),
                 docRegMetadata,
                 indexerMetadata,
-                new DocRegBinaryBulkLoader(docRegsFolder),
+                new DocRegTextBulkLoader(docRegsFolder),
                 new WeightsAndPositionsIndexerLoader(indexersFolder),
-                tmp,
                 maxDocRegsInMemory,
                 maxIndexersInMemory,
                 K
             );
         }
         else {
-            WeightsIndexer tmp = new WeightsIndexer(null);
-
             searcher = new Searcher(
                 tokenizer,
                 new LTC(),
                 docRegMetadata,
                 indexerMetadata,
-                new DocRegBinaryBulkLoader(docRegsFolder),
+                new DocRegTextBulkLoader(docRegsFolder),
                 new WeightsIndexerLoader(indexersFolder),
-                tmp,
                 maxDocRegsInMemory,
                 maxIndexersInMemory,
                 K
             );
         }
 
-        long begin = System.currentTimeMillis();
+        Map<Integer, Map<String, Integer>> relevances = new HashMap<>();
 
         try {
-            Files.lines(Paths.get("queries.txt")).forEach(line -> {
+            Files.lines(Paths.get(parsedArgs.getString("queriesRelevanceFile"))).forEach(line -> {
+                String[] fields = line.split("\\s+");
+                int queryId = Integer.parseInt(fields[0]);
+                String identifier = fields[1];
+                int relevance = Integer.parseInt(fields[2]);
+
+                if (!relevances.containsKey(queryId)) {
+                    relevances.put(queryId, new HashMap<>());
+                }
+
+                relevances.get(queryId).put(identifier, relevance);
+            });
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.exit(2);
+        }
+
+        Evaluation evaluation = new Evaluation(relevances);
+
+        long begin = System.currentTimeMillis();
+
+        // process queries file
+        try {
+            Files.lines(Paths.get(parsedArgs.getString("queriesFile"))).forEach(line -> {
                 int queryId = Integer.parseInt(line.substring(0, 2).trim());
                 String query = line.substring(2);
 
-                System.out.printf("%2d - %d\n", queryId, searcher.queryIndex(query).size());
+                System.out.println(queryId);
+                evaluation.evaluate(queryId, searcher.queryIndex(query));
             });
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        System.out.println(System.currentTimeMillis() - begin);
+        double elapsedTime = (double) (System.currentTimeMillis() - begin);
+
+        System.out.println();
+        evaluation.printMetricsAverage();
+
+        System.out.println();
+        System.out.printf("Query latency: %f\n", elapsedTime / 1000 / evaluation.queryCount);
+        System.out.printf("Query throughput: %f\n", evaluation.queryCount / (elapsedTime / 1000));
     }
 
     /**
@@ -177,6 +208,18 @@ public class Main {
             .type(String.class)
             .help("path to folder where the it is stored" +
                   " the index, document Registry and METADATA files");
+
+        argsParser
+            .addArgument("queriesFile")
+            .type(String.class)
+            .help("Path to the file containing the queries to respond to." +
+                  " Format <queryId>\\t<query>");
+
+        argsParser
+            .addArgument("queriesRelevanceFile")
+            .type(String.class)
+            .help("Path to the file containing the queries relevance of the queries file." +
+                " Format <queryId>\\t<identifier> <relevance>");
 
         argsParser
             .addArgument("-k")

@@ -28,15 +28,6 @@ public class DocumentRegistry {
     }
 
     /**
-     * Constructor for search execution
-     *
-     * @param registry loaded registry
-     */
-    public DocumentRegistry(Map<Integer, String> registry) {
-        this.registry = registry;
-    }
-
-    /**
      * Getter for the number of the documents in the corpus
      */
     public static int getNumberOfDocuments() {
@@ -70,14 +61,6 @@ public class DocumentRegistry {
         registry.put(docId, identifier);
 
         return docId;
-    }
-
-    /**
-     * Gets the translations of the internal document id
-     *  to the respective document identifier
-     */
-    public String translateDocId(int docId) {
-        return registry.get(docId);
     }
 
     /**

@@ -3,10 +3,13 @@ package io.data_containers.loaders;
 import java.io.Serializable;
 import java.util.Map;
 
-public interface BaseLoader<K, V> {
+/**
+ * Base class for the loaders of the data_containers
+ */
+public interface BaseLoader {
 
     /**
-     * Entry to store indexer's internal maps entries, hence
+     * Entry to store data_container's internal maps entries, hence
      *  the Serializable extension
      *
      * @param <K> type of the keys
@@ -18,7 +21,8 @@ public interface BaseLoader<K, V> {
 
         private V value;
 
-        public Entry() {
+        public Entry(K key) {
+            this.key = key;
         }
 
         public Entry(K key, V value) {
@@ -34,10 +38,6 @@ public interface BaseLoader<K, V> {
         @Override
         public V getValue() {
             return value;
-        }
-
-        public void setKey(K key) {
-            this.key = key;
         }
 
         @Override

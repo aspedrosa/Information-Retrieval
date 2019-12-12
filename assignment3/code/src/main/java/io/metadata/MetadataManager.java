@@ -4,6 +4,10 @@ import java.io.IOException;
 import java.util.List;
 import java.util.TreeMap;
 
+/**
+ * Base class for metadata manager to load
+ *  and persist metadata files
+ */
 public abstract class MetadataManager {
 
     protected String filename;

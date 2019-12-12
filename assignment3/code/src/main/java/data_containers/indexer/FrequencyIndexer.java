@@ -17,30 +17,6 @@ public class FrequencyIndexer extends BaseIndexer<
     TermInfoBase<Integer, Document<Integer>>> {
 
     /**
-     * Constructor used during indexing
-     */
-    public FrequencyIndexer() {
-        super();
-    }
-
-    /**
-     * Constructor used during searching
-     */
-    public FrequencyIndexer(Map<String, TermInfoBase<Integer, Document<Integer>>> loadedIndex) {
-        super(loadedIndex);
-    }
-
-    @Override
-    public BaseIndexer<
-        String,
-        Integer,
-        Document<Integer>,
-        TermInfoBase<Integer, Document<Integer>>
-        > createIndexer(Map<String, TermInfoBase<Integer, Document<Integer>>> loadedIndex) {
-        return new FrequencyIndexer(loadedIndex);
-    }
-
-    /**
      *  Inserts BaseDocument classes on the respective
      *   posting lists of every term in the frequencies map.
      * @param documentId id of the document to index

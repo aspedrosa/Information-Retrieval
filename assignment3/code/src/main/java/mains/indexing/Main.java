@@ -1,5 +1,6 @@
 package mains.indexing;
 
+import io.data_containers.persisters.strategies.DocumentRegistryStrategy;
 import io.metadata.BinaryMetadataManager;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.impl.Arguments;
@@ -43,7 +44,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Class containing the main method
+ * Class containing the main method for the indexing pipeline
  */
 public class Main {
 
@@ -147,10 +148,13 @@ public class Main {
                 indexer,
                 corpusReader,
                 tmpFolder,
-                new ObjectStreamPersister<>(documentRegistryFolder, false, maxDocRegSize),
+                new OutputStreamPersister<>(
+                    documentRegistryFolder,
+                    maxDocRegSize,
+                    new DocumentRegistryStrategy()
+                ),
                 new OutputStreamPersister<>(
                     indexerFolder,
-                    false,
                     maxIndexSize,
                     new WeightsAndPositionStrategy()
                 ),
@@ -170,10 +174,13 @@ public class Main {
                 indexer,
                 corpusReader,
                 tmpFolder,
-                new ObjectStreamPersister<>(documentRegistryFolder, false, maxDocRegSize),
+                new OutputStreamPersister<>(
+                    documentRegistryFolder,
+                    maxDocRegSize,
+                    new DocumentRegistryStrategy()
+                ),
                 new OutputStreamPersister<>(
                     indexerFolder,
-                    false,
                     maxIndexSize,
                     new WeightStrategy()
                 ),

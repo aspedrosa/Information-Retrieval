@@ -1,5 +1,5 @@
 /**
  * Classes concerning I/O operations with the
- *  indexer
+ *  data_containers and metadata file
  */
 package io;

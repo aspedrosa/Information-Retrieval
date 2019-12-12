@@ -11,6 +11,9 @@ import java.io.ObjectOutputStream;
 import java.util.List;
 import java.util.TreeMap;
 
+/**
+ * Manager the metadata in binary
+ */
 public class BinaryMetadataManager extends MetadataManager {
 
     public BinaryMetadataManager(String filename) {

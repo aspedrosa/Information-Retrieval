@@ -5,7 +5,7 @@ import io.data_containers.loaders.BaseLoader;
 import java.io.IOException;
 import java.util.Map;
 
-public abstract class BulkLoader<K, V> implements BaseLoader<K, V> {
+public abstract class BulkLoader<K, V> implements BaseLoader {
 
     protected String folder;
 
@@ -13,6 +13,8 @@ public abstract class BulkLoader<K, V> implements BaseLoader<K, V> {
         this.folder = folder;
     }
 
-    public abstract Map<K, V> load(String filename) throws IOException;
+    public abstract Map<K, Object> load(String filename) throws IOException;
+
+    public abstract V getValue(Map<K, Object> loadedMap, K key);
 
 }

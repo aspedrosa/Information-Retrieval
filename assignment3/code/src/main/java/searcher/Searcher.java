@@ -1,8 +1,5 @@
 package searcher;
 
-import data_containers.DocumentRegistry;
-import data_containers.indexer.BaseIndexer;
-import data_containers.indexer.IndexerProvider;
 import data_containers.indexer.structures.Document;
 import data_containers.indexer.structures.TermInfoBase;
 import data_containers.indexer.weights_calculation.searching.CalculationsBase;
@@ -11,7 +8,6 @@ import tokenizer.BaseTokenizer;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,30 +21,40 @@ public class Searcher<D extends Document<Float>,
 
     private BaseTokenizer tokenizer;
 
+    /**
+     * Defines variant to calculate the weights
+     */
     private CalculationsBase<String, Float, D, I> calculations;
 
     private TreeMap<Integer, String> docRegMetadata;
 
     private TreeMap<String, String> indexerMetadata;
 
-    private TreeMap<Integer, DocumentRegistry> docRegsInMemory;
+    private TreeMap<Integer, Map<Integer, Object>> docRegsInMemory;
 
-    private TreeMap<String, BaseIndexer<String, Float, D, I>> indexersInMemory;
+    private TreeMap<String, Map<String, Object>> indexersInMemory;
 
     private BulkLoader<Integer, String> docRegLoader;
 
     private BulkLoader<String, I> indexerLoader;
 
-    private IndexerProvider<String, Float, D, I> indexerProvider;
-
     private int maxDocRegsInMemory;
 
     private int maxIndexersInMemory;
 
+    /**
+     * Stores the number of times a document registry file was consulted
+     */
     private Map<Integer, Integer> docRegsRanks;
 
+    /**
+     * Stores the number of times a indexer file was consulted with success
+     */
     private Map<String, Integer> indexersRanks;
 
+    /**
+     * Maximum number of documents to return
+     */
     private int K;
 
     public Searcher(
@@ -58,7 +64,6 @@ public class Searcher<D extends Document<Float>,
         TreeMap<String, String> indexerMetadata,
         BulkLoader<Integer, String> docRegLoader,
         BulkLoader<String, I> indexerLoader,
-        IndexerProvider<String, Float, D, I> indexerProvider,
         int maxDocRegsInMemory,
         int maxIndexersInMemory,
         int K
@@ -69,7 +74,6 @@ public class Searcher<D extends Document<Float>,
         this.indexerMetadata = indexerMetadata;
         this.docRegLoader = docRegLoader;
         this.indexerLoader = indexerLoader;
-        this.indexerProvider = indexerProvider;
         this.maxDocRegsInMemory = maxDocRegsInMemory;
         this.maxIndexersInMemory = maxIndexersInMemory;
         this.K = K;
@@ -81,26 +85,38 @@ public class Searcher<D extends Document<Float>,
         this.docRegsRanks = new HashMap<>();
     }
 
+    /**
+     * Method to execute the ranked retrieval search
+     */
     public List<String> queryIndex(String query) {
         Map<String, Float> termFrequencyWeights = calculations.calculateTermFrequencyWeights(
             tokenizer.tokenizeString(query)
         );
 
-        List<String> terms = new ArrayList<>(termFrequencyWeights.size());
+        List<DocumentRank> relevantDocuments;
+        {List<String> terms = new ArrayList<>(termFrequencyWeights.size());
         List<List<D>> postingLists = new ArrayList<>(termFrequencyWeights.size());
         getPostingListsOfQueryTerms(termFrequencyWeights, terms, postingLists);
 
-        List<DocumentRank> relevantDocuments = getRelevantDocuments(terms, postingLists, termFrequencyWeights);
+        relevantDocuments = getRelevantDocuments(terms, postingLists, termFrequencyWeights);}
 
         return translateDocumentIds(relevantDocuments);
     }
 
+    /**
+     * Consults the indexers in memory, and disk if necessary, and gets the posting lists
+     *  of the terms present on the query
+     */
     private void getPostingListsOfQueryTerms(Map<String, Float> termFrequencyWeights, List<String> terms, List<List<D>> postingLists) {
         termFrequencyWeights.forEach((term, frequency) -> {
-            Map.Entry<String, BaseIndexer<String, Float, D, I>> indexerEntry = indexersInMemory.floorEntry(term);
-            I termInfo = indexerEntry == null ? null : indexerEntry.getValue().getTermInfo(term);
+            Map.Entry<String, Map<String, Object>> indexerEntry = indexersInMemory.floorEntry(term);
+
+            I termInfo = indexerEntry == null ? null : indexerLoader.getValue(indexerEntry.getValue(), term);
 
             if (indexerEntry != null && termInfo != null) {
+                // in memory
+
+                // increase indexer usages
                 indexersRanks.put(indexerEntry.getKey(), indexersRanks.get(indexerEntry.getKey()) + 1);
 
                 termFrequencyWeights.put( // apply idf
@@ -125,9 +141,9 @@ public class Searcher<D extends Document<Float>,
 
                     checkIfCanLoadIndexerFromDisk();
 
-                    BaseIndexer<String, Float, D, I> indexer = null;
+                    Map<String, Object> invertedIndex = null;
                     try {
-                        indexer = indexerProvider.createIndexer(indexerLoader.load(indexFilename));
+                        invertedIndex = indexerLoader.load(indexFilename);
                     } catch (IOException e) {
                         System.err.println("ERROR while loading indexer file " + indexFilename);
                         e.printStackTrace();
@@ -135,13 +151,13 @@ public class Searcher<D extends Document<Float>,
                     }
 
                     // store index in memory
-                    indexersInMemory.put(indexFilenameEntry.getKey(), indexer);
+                    indexersInMemory.put(indexFilenameEntry.getKey(), invertedIndex);
 
                     if (!indexersRanks.containsKey(indexFilenameEntry.getKey())) {
                         indexersRanks.put(indexFilenameEntry.getKey(), 0);
                     }
 
-                    termInfo = indexer.getTermInfo(term);
+                    termInfo = indexerLoader.getValue(invertedIndex, term);
                     if (termInfo != null) {
                         terms.add(term);
                         postingLists.add(termInfo.getPostingList());
@@ -154,6 +170,7 @@ public class Searcher<D extends Document<Float>,
                             )
                         );
 
+                        // increase indexer usages
                         indexersRanks.put(indexFilenameEntry.getKey(), indexersRanks.get(indexFilenameEntry.getKey()) + 1);
                     }
                     /*else {
@@ -177,6 +194,13 @@ public class Searcher<D extends Document<Float>,
         calculations.resetNormalization();
     }
 
+    /**
+     * Iterates over the posting lists to calculate the weights for each document
+     * To get the terms for each document we take advantage of the posting lists
+     *  being sorted by document id get the documents with common lowest document ids.
+     * This way we only need to iterate over the posting lists one time to calculate the
+     *  weights for the documents
+     */
     private List<DocumentRank> getRelevantDocuments(List<String> terms, List<List<D>> postingLists, Map<String, Float> termFrequencyWeights) {
         List<Integer> postingListsCurrentIndexes = new ArrayList<>(postingLists.size());
         for (int i = 0; i < postingLists.size(); i++) {
@@ -192,9 +216,9 @@ public class Searcher<D extends Document<Float>,
             // find the first document(s) among all the posting lists with
             //  the lowest docId
             idxWithDocWithLowerID.add(0);
-            int lowestDocId = postingLists.get(0).get(0).getDocId();
+            int lowestDocId = postingLists.get(0).get(postingListsCurrentIndexes.get(0)).getDocId();
             for (int i = 1; i < postingListsCurrentIndexes.size(); i++) {
-                int docId = postingLists.get(i).get(0).getDocId();
+                int docId = postingLists.get(i).get(postingListsCurrentIndexes.get(i)).getDocId();
                 if (docId < lowestDocId) {
                     idxWithDocWithLowerID.clear();
                     idxWithDocWithLowerID.add(i);
@@ -205,15 +229,14 @@ public class Searcher<D extends Document<Float>,
                 }
             }
 
-            // if the number of query terms on the document is greater of equal to half
-            //  of the number of query terms
-            if (idxWithDocWithLowerID.size() >= termFrequencyWeights.size() * 0.5) {
+            // to reduce the number of documents considered uncomment the if block
+            //if (idxWithDocWithLowerID.size() >= termFrequencyWeights.size() * 0.5) {
                 // calculate the score for this document
                 float cumulativeScore = 0;
-                int docId = postingLists.get(idxWithDocWithLowerID.get(0)).get(0).getDocId();
+                int docId = postingLists.get(idxWithDocWithLowerID.get(0)).get(postingListsCurrentIndexes.get(idxWithDocWithLowerID.get(0))).getDocId();
 
                 for (Integer idx : idxWithDocWithLowerID) {
-                    float documentWeightForTerm = postingLists.get(idx).get(0).getWeight();
+                    float documentWeightForTerm = postingLists.get(idx).get(postingListsCurrentIndexes.get(idx)).getWeight();
                     float queryTermWeight = termFrequencyWeights.get(terms.get(idx));
 
                     cumulativeScore += queryTermWeight * documentWeightForTerm;
@@ -221,7 +244,7 @@ public class Searcher<D extends Document<Float>,
 
                 // and add it to the relevant documents list
                 relevantDocuments.add(new DocumentRank(docId, cumulativeScore));
-            }
+            //}
 
             for (Integer idx : idxWithDocWithLowerID) {
                 int currentIdx = postingListsCurrentIndexes.get(idx);
@@ -233,35 +256,37 @@ public class Searcher<D extends Document<Float>,
             -doc1.weight.compareTo(doc2.weight) // decreasing order
         );
 
-        return relevantDocuments.subList(0, relevantDocuments.size() < K ? relevantDocuments.size() : K);
+        return relevantDocuments.subList(0, Math.min(relevantDocuments.size(), K));
     }
 
+    /**
+     * Convert the internal id of the relevant document into their respective
+     *  identifier by consulting the document registry files
+     */
     private List<String> translateDocumentIds(List<DocumentRank> relevantDocuments) {
         List<String> relevantDocumentsIdentifiers = new ArrayList<>(relevantDocuments.size());
 
         for (DocumentRank docRank : relevantDocuments) {
             int docId = docRank.docId;
 
-            Map.Entry<Integer, DocumentRegistry> docRegEntry = docRegsInMemory.floorEntry(docId);
-            String identifier = docRegEntry == null ? null : docRegEntry.getValue().translateDocId(docId);
+            Map.Entry<Integer, Map<Integer, Object>> docRegEntry = docRegsInMemory.floorEntry(docId);
+            String identifier = docRegEntry == null ? null : docRegLoader.getValue(docRegEntry.getValue(), docId);
 
             if (docRegEntry != null && identifier != null) {
                 // in memory
                 docRegsRanks.put(docRegEntry.getKey(), docRegsRanks.get(docRegEntry.getKey()) + 1);
-
-                relevantDocumentsIdentifiers.add(identifier);
             }
             else {
-                // check disk
+                // load from disk
 
                 Map.Entry<Integer, String> docRegFilenameEntry = docRegMetadata.floorEntry(docId);
                 String docRegFilename = docRegFilenameEntry.getValue();
 
                 checkIfCanLoadDocRegFromDisk();
 
-                DocumentRegistry documentRegistry = null;
+                Map<Integer, Object> documentRegistry = null;
                 try {
-                    documentRegistry = new DocumentRegistry(docRegLoader.load(docRegFilename));
+                    documentRegistry = docRegLoader.load(docRegFilename);
                 } catch (IOException e) {
                     System.err.println("ERROR while loading document registry file " + docRegFilename);
                     e.printStackTrace();
@@ -270,17 +295,25 @@ public class Searcher<D extends Document<Float>,
 
                 docRegsInMemory.put(docRegFilenameEntry.getKey(), documentRegistry);
 
+                // increment the number of usage of the file loaded
                 docRegsRanks.merge(docRegFilenameEntry.getKey(), 1, Integer::sum);
 
-                identifier = documentRegistry.translateDocId(docId);
+                identifier = docRegLoader.getValue(documentRegistry, docId);
 
-                relevantDocumentsIdentifiers.add(identifier);
             }
+
+            relevantDocumentsIdentifiers.add(identifier);
         }
 
         return relevantDocumentsIdentifiers;
     }
 
+    /**
+     * Checks if it can load another index from disk
+     * If the number of indexers in memory is higher
+     *  than the maximum number then remove half
+     *  of the indexers in memory with smaller ranks
+     */
     private void checkIfCanLoadIndexerFromDisk() {
         if (indexersInMemory.size() < maxIndexersInMemory) {
             return; // there's still space
@@ -300,10 +333,14 @@ public class Searcher<D extends Document<Float>,
         indexersInMemory.keySet().removeIf(key ->
             !toSave.contains(key)
         );
-
-        System.gc();
     }
 
+    /**
+     * Checks if it can load another document registry from disk
+     * If the number of document registry in memory is higher
+     *  than the maximum number then remove half
+     *  of the document registry in memory with smaller ranks
+     */
     private void checkIfCanLoadDocRegFromDisk() {
         if (docRegsInMemory.size() < maxDocRegsInMemory) {
             return; // there's still space
@@ -312,6 +349,7 @@ public class Searcher<D extends Document<Float>,
         Set<Integer> toSave = docRegsRanks
             .entrySet()
             .stream()
+            .parallel()
             .filter(entry -> docRegsInMemory.containsKey(entry.getKey()))
             .sorted((entry1, entry2) ->
                 -entry1.getValue().compareTo(entry2.getValue()) // decreasing order
@@ -323,10 +361,14 @@ public class Searcher<D extends Document<Float>,
         docRegsInMemory.keySet().removeIf(key ->
             !toSave.contains(key)
         );
-
-        System.gc();
     }
 
+    /**
+     * Checks if all the indexes to go over the posting lists of
+     *  the query terms are at the end.
+     * Removes the ones that reached the end
+     * @return true if all reached the end, false otherwise
+     */
     private boolean indexsAtEnd(List<Integer> idxs, List<String> terms, List<List<D>> postingLists) {
         assert idxs.size() == postingLists.size() && postingLists.size() == terms.size();
 
@@ -346,7 +388,7 @@ public class Searcher<D extends Document<Float>,
         return atEnd;
     }
 
-    private class DocumentRank {
+    private static class DocumentRank {
 
         private int docId;
 
