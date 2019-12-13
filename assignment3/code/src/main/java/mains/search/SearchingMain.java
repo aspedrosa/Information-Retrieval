@@ -33,7 +33,7 @@ import java.util.TreeMap;
 /**
  * Class containing the main method for the search pipeline
  */
-public class Main {
+public class SearchingMain {
 
     /**
      * Application starting point
@@ -79,7 +79,7 @@ public class Main {
         }
 
         // create an advanced tokenizer
-        Set<String> stopWords = mains.indexing.Main.readStopWordsFile(parsedArgs.getString("stopWordsFilename"));
+        Set<String> stopWords = mains.indexing.IndexingMain.readStopWordsFile(parsedArgs.getString("stopWordsFilename"));
 
         List<LinguisticRule> rules = new ArrayList<>(3);
         rules.add(new StopWordsRule(stopWords));

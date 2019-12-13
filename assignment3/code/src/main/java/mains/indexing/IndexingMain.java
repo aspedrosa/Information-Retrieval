@@ -8,7 +8,6 @@ import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
 
-import io.data_containers.persisters.ObjectStreamPersister;
 import io.data_containers.persisters.OutputStreamPersister;
 import io.data_containers.persisters.strategies.WeightsAndPositionStrategy;
 import io.data_containers.persisters.strategies.WeightStrategy;
@@ -46,7 +45,7 @@ import java.util.Set;
 /**
  * Class containing the main method for the indexing pipeline
  */
-public class Main {
+public class IndexingMain {
 
     /**
      * Application starting point

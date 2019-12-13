@@ -53,7 +53,7 @@
                             <archive>
                             <manifest>
                                 <mainClass>
-                                    mains.indexing.Main
+                                    mains.indexing.IndexingMain
                                 </mainClass>
                             </manifest>
                             </archive>
@@ -73,7 +73,7 @@
                             <archive>
                                 <manifest>
                                     <mainClass>
-                                        mains.search.Main
+                                        mains.search.SearchingMain
                                     </mainClass>
                                 </manifest>
                             </archive>

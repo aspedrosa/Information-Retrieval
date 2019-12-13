@@ -21,6 +21,16 @@ public abstract class MetadataManager {
         List<String> indexerFirstKeys
     ) throws IOException;
 
+    /**
+     * Loads the metadata into the received structures.
+     * Also sets the NUMBER_OF_DOCUMENTS variable of the DocumentRegistry class
+     *
+     * @param docRegMetadata a treemap reference to where the metadata
+     *  of the document registries will be stored
+     * @param indexerMetadata a treemap reference to where the metadata
+     *  of the indexers will be stored
+     * @throws IOException
+     */
     public abstract void loadMetadata(
         TreeMap<Integer, String> docRegMetadata,
         TreeMap<String, String> indexerMetadata

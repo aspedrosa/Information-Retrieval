@@ -120,6 +120,7 @@ public abstract class BasePersister<K extends Comparable, V> implements Closeabl
         for (int i = 0; i < sortedEntries.size(); i++) {
             long currentEntrySize = 0;
             if (limitFileSize > 0) {
+                // if there is not limit for the file size don't calculate the entry size
                 currentEntrySize = meter.measureDeep(
                     considerOnlyValueForMemory ? sortedEntries.get(i).getValue() : sortedEntries.get(i)
                 );

@@ -111,6 +111,7 @@ public class Searcher<D extends Document<Float>,
      *  of the terms present on the query
      */
     private void getPostingListsOfQueryTerms(Map<String, Float> termFrequencyWeights, List<String> terms, List<List<D>> postingLists) {
+        // here we are sorting the term to try reusing segments loaded from disk
         termFrequencyWeights.keySet().stream().sorted(String::compareTo).forEach(term -> {
             float frequency = termFrequencyWeights.get(term);
             Map.Entry<String, Map<String, Object>> indexerEntry = indexersInMemory.floorEntry(term);
@@ -272,6 +273,7 @@ public class Searcher<D extends Document<Float>,
         IntStream.range(0, relevantDocuments.size())
             .forEach(i -> relevantDocumentsIdentifiers.add(""));
 
+        // here we are sorting the document ids to try reusing segments loaded from disk
         IntStream.range(0, relevantDocuments.size())
             .mapToObj(idx -> new DocumentToTranslate(relevantDocuments.get(idx).docId, idx))
             .sorted(Comparator.comparingInt(doc -> doc.docId))

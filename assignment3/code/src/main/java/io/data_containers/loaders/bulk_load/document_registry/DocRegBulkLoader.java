@@ -1,5 +1,7 @@
 package io.data_containers.loaders.bulk_load.document_registry;
 
+import io.data_containers.loaders.BaseLoader;
+
 import java.io.IOException;
 
 /**
@@ -7,7 +9,7 @@ import java.io.IOException;
  * It is assumed that the document translations are written
  *  sequential in some output format (line by line, binary, ...)
  */
-public abstract class DocRegBulkLoader {
+public abstract class DocRegBulkLoader implements BaseLoader {
 
     protected String folder;
 
