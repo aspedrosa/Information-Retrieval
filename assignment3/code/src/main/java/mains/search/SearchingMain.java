@@ -24,9 +24,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -99,7 +97,13 @@ public class SearchingMain {
         long memPerIndexer = parsedArgs.getInt("indexersSize") * 1024 * 1024;
         long memPerDocReg = parsedArgs.getInt("docRegsSize") * 1024 * 1024;
         maxIndexersInMemory = (int) Math.floorDiv(memForIndexers, memPerIndexer) - 1;
-        maxDocRegsInMemory = (int) Math.floorDiv(memForDocRegs, memPerDocReg) - 1;}
+        maxDocRegsInMemory = (int) Math.floorDiv(memForDocRegs, memPerDocReg) - 1;
+
+        if (maxIndexersInMemory <= 0 || maxDocRegsInMemory <= 0) {
+            System.err.println("ERROR non enough memory with given maxLoadFactor and factorForIndexers" +
+                               " to have at least one indexer and one document registry in memory at the same time");
+            System.exit(1);
+        }}
 
         int K = parsedArgs.getInt("K");
 
@@ -132,27 +136,15 @@ public class SearchingMain {
             );
         }
 
-        Map<Integer, Map<String, Integer>> relevances = new HashMap<>();
-
+        Evaluation tmp = null;
         try {
-            Files.lines(Paths.get(parsedArgs.getString("queriesRelevanceFile"))).forEach(line -> {
-                String[] fields = line.split("\\s+");
-                int queryId = Integer.parseInt(fields[0]);
-                String identifier = fields[1];
-                int relevance = Integer.parseInt(fields[2]);
-
-                if (!relevances.containsKey(queryId)) {
-                    relevances.put(queryId, new HashMap<>());
-                }
-
-                relevances.get(queryId).put(identifier, relevance);
-            });
+            tmp = new Evaluation(parsedArgs.getString("queriesRelevanceFile"));
         } catch (IOException e) {
+            System.err.println("ERROR while creating evaluation class");
             e.printStackTrace();
             System.exit(2);
         }
-
-        Evaluation evaluation = new Evaluation(relevances);
+        Evaluation evaluation = tmp;
 
         long begin = System.currentTimeMillis();
 
@@ -166,7 +158,9 @@ public class SearchingMain {
                 evaluation.evaluate(queryId, searcher.queryIndex(query));
             });
         } catch (IOException e) {
+            System.err.println("ERROR while reading queries file");
             e.printStackTrace();
+            System.exit(2);
         }
 
         double elapsedTime = (double) (System.currentTimeMillis() - begin);
@@ -241,7 +235,8 @@ public class SearchingMain {
             .action(Arguments.store())
             .setDefault(0.8f)
             .help("Max factor of memory usage during the execution of the" +
-                  " program. Default 0.8");
+                  " program to store indexers and document registries" +
+                  " in memory. Default 0.8");
 
         argsParser
             .addArgument("--memory-factor-to-indexers")

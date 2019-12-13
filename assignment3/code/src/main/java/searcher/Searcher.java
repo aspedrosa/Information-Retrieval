@@ -91,7 +91,7 @@ public class Searcher<D extends Document<Float>,
     /**
      * Method to execute the ranked retrieval search
      */
-    public List<String> queryIndex(String query) {
+    public List<Integer> queryIndex(String query) {
         Map<String, Float> termFrequencyWeights = calculations.calculateTermFrequencyWeights(
             tokenizer.tokenizeString(query)
         );
@@ -268,10 +268,10 @@ public class Searcher<D extends Document<Float>,
      * Convert the internal id of the relevant document into their respective
      *  identifier by consulting the document registry files
      */
-    private List<String> translateDocumentIds(List<DocumentRank> relevantDocuments) {
-        List<String> relevantDocumentsIdentifiers = new ArrayList<>(relevantDocuments.size());
+    private List<Integer> translateDocumentIds(List<DocumentRank> relevantDocuments) {
+        List<Integer> relevantDocumentsIdentifiers = new ArrayList<>(relevantDocuments.size());
         IntStream.range(0, relevantDocuments.size())
-            .forEach(i -> relevantDocumentsIdentifiers.add(""));
+            .forEach(i -> relevantDocumentsIdentifiers.add(0));
 
         // here we are sorting the document ids to try reusing segments loaded from disk
         IntStream.range(0, relevantDocuments.size())
@@ -313,7 +313,7 @@ public class Searcher<D extends Document<Float>,
 
                 }
 
-                relevantDocumentsIdentifiers.set(docToTranslate.idx, identifier.toString());
+                relevantDocumentsIdentifiers.set(docToTranslate.idx, identifier);
             });
 
         return relevantDocumentsIdentifiers;

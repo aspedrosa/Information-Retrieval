@@ -1,205 +1,218 @@
 package searcher;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.util.*;
-import java.lang.Math;
+import data_containers.DocumentRegistry;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
- * Class calculate the following
- * evaluation and efficiency metrics
+ * Class to calculate the following
+ * evaluation metrics
  */
 public class Evaluation {
 
     /**
-     *
-     * Obtains the ids of queries listed
-     *
-     * @param filename
-     * @return ids of queries
+     * {<queryId> : {<identifier> : <relevance>}}
      */
-    public List<String> docs(String filename){
-        List<String> idQueries = new ArrayList<>();
-        Scanner input = null;
-        try {
-            input = new Scanner(new File(filename));
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-        while (input.hasNextLine()){
-            String[] line = input.nextLine().split("\t");
-            if (!idQueries.contains(line[0])){
-                idQueries.add(line[0]);
+    private Map<Integer, Map<Integer, Integer>> queryRelevance;
+
+    public int queryCount;
+
+    double cumulativePrecision;
+
+    double cumulativeRecall;
+
+    double cumulativeFMeasure;
+
+    double cumulativeAveragePrecision;
+
+    double cumulativeNDCG;
+
+    public Evaluation(String queriesRelevanceFile) throws IOException {
+        queryRelevance = new HashMap<>();
+
+        Files.lines(Paths.get(queriesRelevanceFile)).forEach(line -> {
+            String[] fields = line.split("\\s+");
+
+            int queryId = Integer.parseInt(fields[0]);
+            int identifier = Integer.parseInt(fields[1]);
+            int relevance = -Integer.parseInt(fields[2]) + 3; // assuming file has a 1-3 inverted scale, convert to 0-2
+
+            if (!queryRelevance.containsKey(queryId)) {
+                queryRelevance.put(queryId, new HashMap<>());
             }
-        }
-        return idQueries;
+
+            queryRelevance.get(queryId).put(identifier, relevance);
+        });
+
+        queryCount = 0;
+        cumulativePrecision = cumulativeRecall = cumulativeFMeasure = cumulativeAveragePrecision = cumulativeNDCG = 0;
     }
 
     /**
-     *
-     * @param filename
-     * @return list of revelance scores
+     * Calculate metrics of the results according to the queries relevance information
      */
-    public Map<String, ArrayList<ArrayList<String>>> loadTruth(String filename){
-        Map<String, ArrayList<ArrayList<String>>> queriesTruth = new HashMap<>();
-        Scanner input = null;
-        try {
-            input = new Scanner(new File(filename));
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-        while (input.hasNextLine()){
-            String[] line = input.nextLine().split("\t");
-            ArrayList<String> info = new ArrayList<>();
-            info.add(line[1]); info.add(line[2]);
+    public void evaluate(int queryId, List<Integer> queryResults) {
+        evaluate(queryId, queryResults, false);
+    }
 
-            ArrayList<ArrayList<String>> infos = new ArrayList<>();
-            if (!queriesTruth.containsKey(line[0])){
-                infos.add(info);
-                queriesTruth.put(line[0], infos);
+    /**
+     * Same as previous method but can print the metrics results for the query
+     */
+    public void evaluate(int queryId, List<Integer> queryResults, boolean printMetrics) {
+        queryCount++;
+
+        double precision, recall, ndcg;
+        if (queryResults.isEmpty()) {
+            precision = 0;
+            recall = 0;
+            ndcg = 0;
+        }
+        else {
+            int[] TP_FP_TN_FN = calculateTP_FP_TN_FN(queryResults, queryId);
+            int tp = TP_FP_TN_FN[0];
+            int fp = TP_FP_TN_FN[1];
+            int tn = TP_FP_TN_FN[2];
+            int fn = TP_FP_TN_FN[3];
+
+            precision = calculatePrecision(tp, fp);
+            cumulativePrecision += precision;
+
+            recall = calculateRecall(tp, fn);
+            cumulativeRecall += recall;
+
+            ndcg = calculateNDCG(queryId, queryResults);
+            cumulativeNDCG += ndcg;
+        }
+
+        double fmeasure = calculateFMeasure(precision, recall);
+        cumulativeFMeasure += fmeasure;
+
+        double averagePrecision = calculateAveragePrecision(queryResults, queryId);
+        cumulativeAveragePrecision += averagePrecision;
+
+        if (printMetrics) {
+            System.out.printf("Precision:         %f\n", precision);
+            System.out.printf("Recall:            %f\n", recall);
+            System.out.printf("F Measure:         %f\n", fmeasure);
+            System.out.printf("Average Precision: %f\n", averagePrecision);
+            System.out.printf("NGDC:              %f\n", ndcg);
+        }
+    }
+
+    /**
+     * Calculate the average of the several calculated metrics
+     */
+    public void printMetricsAverage() {
+        System.out.printf("Mean Precision:         %f\n", cumulativePrecision / queryCount);
+        System.out.printf("Mean Recall:            %f\n", cumulativeRecall / queryCount);
+        System.out.printf("Mean F Measure:         %f\n", cumulativeFMeasure / queryCount);
+        System.out.printf("Mean Average Precision: %f\n", cumulativeAveragePrecision / queryCount);
+        System.out.printf("Mean NGDC:              %f\n", cumulativeNDCG / queryCount);
+    }
+
+    private int[] calculateTP_FP_TN_FN(List<Integer> queryResults, int queryId) {
+        int truePositives = 0;
+        int falseNegatives = 0;
+        for (int relevantDocument : queryRelevance.get(queryId).keySet()) {
+            if (queryResults.contains(relevantDocument)) {
+                truePositives++;
             }
             else {
-                infos = queriesTruth.get(line[0]);
-                infos.add(info);
-                queriesTruth.put(line[0], infos);
-            }
-        }
-        return queriesTruth;
-    }
-
-    /**
-     *
-     * @param docs
-     * @param results
-     * @return mean precision, recall and fmeasure
-     */
-    private ArrayList<Double> calculateMeanPrecision_Recall_FMeasure(ArrayList<String> docs, ArrayList<String> results) {
-        double tp = 0, fp = 0, fn = 0;
-
-        for (String p: results) {
-            if (docs.contains(p)) tp += 1;
-            else fp += 1;
-        }
-
-        for (String t: docs){
-            if (!results.contains(t)) fn += 1;
-        }
-
-        double P = (tp+fp) != 0 ? P = tp/(tp+fp) : 0.0;
-        double R = (tp+fn) != 0 ? R = tp/(tp+fn) : 0.0;
-        double Fmeasure = (R+P) != 0 ? (2*R*P)/(R+P) : 0.0;
-
-        ArrayList<Double> calc = new ArrayList<>();
-        calc.add(P); calc.add(R); calc.add(Fmeasure);
-
-        return calc;
-    }
-
-    /**
-     *
-     * @param docs
-     * @param results
-     * @param rank
-     * @return mean precision with rank 10
-     */
-    private double calculateMeanPrecisionAtRank10(ArrayList<String> docs, ArrayList<String> results, int rank) {
-        double pSum = 0;
-        double count = 0;
-
-        for (int i = 0; i < rank; i++){
-            if (docs.contains(results.get(i))){
-                count += 1;
-                ArrayList<Double> calc = calculateMeanPrecision_Recall_FMeasure(docs, (ArrayList<String>) results.subList(0, i));
-                pSum += calc.get(0);
+                falseNegatives++;
             }
         }
 
-        return count != 0 ? pSum/count : 0.0;
+        int falsePositives = queryResults.size() - truePositives;
+        int trueNegatives =
+            DocumentRegistry.getNumberOfDocuments()
+                - falseNegatives - falsePositives
+                + truePositives;
+
+        return new int[] {truePositives, falsePositives, trueNegatives, falseNegatives};
     }
 
-    /**
-     *
-     * @param truth
-     * @param results
-     * @return ndcg
-     */
-    private double calculateNDCG(ArrayList<ArrayList<String>> truth, ArrayList<String> results) {
-        double ideal = 0;
-        double actual = 0;
-        ArrayList<Double> resultsRevelance = new ArrayList<>();
-        for(String r: results){
-            boolean cond = false;
-            for (ArrayList<String> t: truth){
-                if (r.equals(t.get(0))){
-                    cond = true;
-                    resultsRevelance.add(Double.parseDouble(t.get(1)));
-                }
+    private double calculatePrecision(int tp, int fp) {
+        if (tp + fp == 0) {
+            return 0;
+        }
+
+        return (double) tp / (tp + fp);
+    }
+
+    private double calculateRecall(int tp, int fn) {
+        if (tp + fn == 0) {
+            return 0;
+        }
+
+        return (double) tp / (tp + fn);
+    }
+
+    private double calculateFMeasure(double precision, double recall) {
+        if (precision == 0 && recall == 0) {
+            return 0;
+        }
+
+        return (2 * recall * precision) / (recall + precision);
+    }
+
+    private double calculateAveragePrecision(List<Integer> queryResults, int queryId) {
+        int docsCount = 0;
+        int relevantDocsCount = 0;
+        double cumulativePrecision = 0;
+        for (Integer identifier : queryResults) {
+            docsCount++;
+
+            if (queryRelevance.get(queryId).containsKey(identifier)) {
+                relevantDocsCount++;
+
+                cumulativePrecision += (double) relevantDocsCount / docsCount;
             }
-            if (!cond) resultsRevelance.add(0.0);
         }
-        ArrayList<Double> idealRe = new ArrayList<>();
-        idealRe.addAll(resultsRevelance);
-        Collections.reverse(idealRe);
-        for (int j = 0; j < idealRe.size(); j++){
-            double denominator = j+1 > 1 ? Math.log(j+1)/Math.log(2) : 1;
-            ideal += idealRe.get(j)/denominator;
-            actual += resultsRevelance.get(j)/denominator;
 
+        if (relevantDocsCount == 0) {
+            return 0;
         }
-        return ideal != 0 ? actual/ideal : 0.0;
+
+        return cumulativePrecision / relevantDocsCount;
     }
 
-    /**
-     *
-     * @param numbers
-     * @return sum of list doubles
-     */
-    private double sum(ArrayList<Double> numbers){
-        double result = 0;
-        for (double d: numbers){
-            result += d;
+    private double calculateNDCG(int queryId, List<Integer> queryResults) {
+        List<Integer> relevances = queryResults
+            .stream()
+            .map(identifier -> {
+                Integer relevance = queryRelevance.get(queryId).get(identifier);
+
+                return relevance == null ? 0 : relevance;
+            })
+            .collect(Collectors.toList());
+
+        List<Integer> idealOrder = relevances
+            .stream()
+            .sorted((rel1, rel2) -> -rel1.compareTo(rel2))
+            .collect(Collectors.toList());
+
+        double idealDCG = idealOrder.get(0);
+        for (int i = 2; i < idealOrder.size() + 1; i++) {
+            idealDCG += (double) idealOrder.get(i - 1) / (Math.log(i) / Math.log(2));
         }
-        return result;
-    }
 
-    /**
-     *
-     * Calculate the metrics of documents
-     *
-     * @param PMIDs
-     */
-    public void results(List<String> PMIDs){
-        List<String> queries = docs("queries.txt");
-        Map<String, ArrayList<ArrayList<String>>> queriesTruth = loadTruth("queries.revelance.txt");
-        ArrayList<Double> precisions = new ArrayList<>();
-        ArrayList<Double> recalls = new ArrayList<>();
-        ArrayList<Double> fmeasures = new ArrayList<>();
-        ArrayList<Double> meanprecisons10 = new ArrayList<>();
-        ArrayList<Double> ndcg = new ArrayList<>();
-
-        for(String query: queries){
-            ArrayList<ArrayList<String>> truth = queriesTruth.get(query);
-            ArrayList<String> docsTrue = new ArrayList<>();
-            for(ArrayList<String> x: truth){
-                docsTrue.add(x.get(0));
-            }
-
-            ArrayList<Double> calc = calculateMeanPrecision_Recall_FMeasure(docsTrue, (ArrayList<String>) PMIDs);
-
-            double mprecision10 = calculateMeanPrecisionAtRank10(docsTrue, (ArrayList<String>) PMIDs, 10);
-            double calcNDCG = calculateNDCG(truth, (ArrayList<String>) PMIDs);
-
-            precisions.add(calc.get(0));
-            recalls.add(calc.get(1));
-            fmeasures.add(calc.get(2));
-            meanprecisons10.add(mprecision10);
-            ndcg.add(calcNDCG);
+        if (idealDCG == 0) {
+            return 0;
         }
-        double avgPrecisions = sum(precisions)/(precisions.size());
-        double avgRecalls = sum(recalls)/(recalls.size());
-        double avgFmeasures = sum(fmeasures)/(fmeasures.size());
-        double avgMeanPrecisions10 = sum(meanprecisons10)/(meanprecisons10.size());
-        double avgNDCG = sum(ndcg)/(ndcg.size());
+
+        double realDCG = relevances.get(0);
+        for (int i = 2; i < relevances.size() + 1; i++) {
+            realDCG += (double) relevances.get(i - 1) / (Math.log(i) / Math.log(2));
+        }
+
+        return realDCG / idealDCG;
     }
 
 }
