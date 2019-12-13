@@ -34,7 +34,7 @@
     \normalsize{Universidade de Aveiro}\\
 }
 
-\date{13 de novembro de 2019}
+\date{13 de dezembro de 2019}
 
 % TITLE PAGE CONTENT END
 
@@ -120,15 +120,15 @@ original de cada documento de {\it String} para {\it int}.
 \section*{3.3. data\_containers}
 Na entrega anterior tanto o inverted index como o document registry
 estavam presentes na mesma classe, Indexer.
-Isto trazia alguns problemas para a pipeline de responder a queries
-pois quando o inverted index era carregado o respetivo document
-registry devia também de ser carregado.
+Isto trazia alguns problemas para a pipeline de pesquisa pois quando
+o inverted index era carregado o respetivo document registry devia
+também de ser carregado.
 No entanto um termo pode ter um documento de id 1, que foi o primeiro
 a ser indexado, e outro com id 4.000.000, um dos últimos a serem
 indexados.
 Isto implicava consultar diferentes segmentos do document registry já
-em disco na altura de indexação, isto supondo que não todos em
-memória.
+em disco na altura de indexação, isto supondo que não conseguimos ter
+todos em memória.
 
 Com isto em consideração separamos o document registry e o indexer em
 duas classes, o Indexer que contem o inverted index (Map) e o
@@ -136,6 +136,12 @@ DocumentRegistry que contem a tradução entre o nosso identificador
 interno com o identificador original (Map).
 É de realçar que estas classes apenas serão usadas em tempo de
 indexação.
+
+Na entrega anterior quem tinha a responsabilidade de atribuir novos
+ids internos aos documentos que iam sendo indexados era a classe
+Document do package parsers.
+Nesta entrega esta responsabilidade foi mudada para a nova classe
+DocumentRegistry.
 
 \section*{3.3.1. data\_containers.indexer}
 \begin{figure}[h]
@@ -158,7 +164,7 @@ depois das classes presentes na root deste package.
 \end{figure}
 
 Como na entrega anterior o pesos dos documentos estavam a ser mal
-calculados, estando a ser calculados por termos em ver de por
+calculados, estando a ser calculados por termos em vez de por
 documentos, a {\it post indexing action} criada agora apenas calcula
 o idf dos termos, que apenas pode ser calculado no final do processo
 de indexação.
@@ -200,166 +206,232 @@ DocumentWithInfo}).
 \section*{3.3.1.3 data\_containers.indexer.weights\_calculation}
 \begin{figure}[H]
   \center
-   \includegraphics[width=\linewidth]{packages_data_containers_indexer_weights_calculation.png}
+   \includegraphics[width=15cm]{packages_data_containers_indexer_weights_calculation.png}
   \caption{Diagrama de classes do package \it
     data\_containers.indexer.weights\_calculations}
 \end{figure}
-asdfsdf
+
+Este package possibilita o calculo de diferentes variantes de pesos a
+serem usados durante o processo de indexação ou pesquisa.
+Para esta entrega apenas desenvolvemos as classes necessárias para
+calcular a variante {\it lnc.ltc}.
 
 \section*{3.4. io}
+
+Na entrega anterior, para sabermos quais os termos presentes num
+determinado ficheiro de indexer ou document registry, os nomes destes
+ficheiros continham a chave da primeira entry guardada nesse.
+Ou seja, se tivéssemos dois ficheiros um com nome {\it aaa} e outro
+{\it bbb} sabíamos que o termo {\it abc} estava no ficheiro {\it
+aaa}.
+
+No entanto nesta entrega mudamos a nossa estratégia e passamos a
+guardar estes metadados num ficheiro separado.
+
+Como este package passou a não guardar só estrutura relativas ao
+indexer migramos o package para a root do projeto.
+
 \section*{3.4.1 io.metadata}
+\begin{figure}[H]
+  \center
+   \includegraphics[width=8cm]{packages_io_metadata.png}
+  \caption{Diagrama de classes do package \it
+    io.metadata}
+\end{figure}
+
+Neste package encontramos diferentes estratégias de gerir em disco os
+meta dados do sistema de recuperação de informação.
+O meta dados têm a associação entre a chave da primeira entry guarda
+em cada ficheiro de indexer (chave é o termo) e document registry
+(chave é o nosso id interno) e o número total de documentos indexados
+(presente na classe DocumentRegistry).
+
+De maneira a sabermos rapidamente em que ficheiro um certo termo ou
+id interno está durante a fase de procura, usamos um TreeMap para
+guardar as associações referidas, em que as chaves são as tais
+primeiras chaves guardadas num ficheiro e o valor é o nome do
+ficheiro em disco onde está guardo.
+Fazemos depois uso do método {\it floor} desta classe que nos dá a
+maior chave que é menor ou igual à chave que procuramos.
+Ou seja, se quisermos traduzir um documento com id 1000 e tivermos
+dois ficheiros um em que o primeiro id que guarda é o 0 e outro
+1.000.000 ao chamar o método {\it floor} com o argumento 1000 irá
+devolver o nome do ficheiro em que o primeiro id é 0.
+
 \section*{3.4.2 io.data\_containers}
+
+Este package foi originado do package {\it indexer.io} da entrega anterior,
+em que contêm o loaders e persister para os diferentes data
+containers, indexer e document registry.
+
+\section*{3.4.2.1 io.data\_containers.loaders}
+\begin{figure}[H]
+  \center
+   \includegraphics[width=\linewidth]{packages_io_data_containers_loaders.png}
+  \caption{Diagrama de classes do package \it
+    io.data\_containers.loaders}
+\end{figure}
+
+Na entrega anterior apenas tínhamos desenvolvido laoders do tipo {\it
+lazy}, ou seja, era carregado uma entry de cada vez do ficheiro. Isto
+foi feito para evitar carregar todas as entries para memória e ao
+mesmo tempo fazer merge dos vários ficheiros temporários criados pela
+pipeline SPIMI.
+
+Neste entrega desenvolvemos também loaders to tipo {\it bulk}, em que
+carregam todo o conteúdo para memória de uma vez.
+
+No caso dos indexers, ao carregar para memória é necessário
+transformar o dados em disco em objetos, contudo durante a pipeline
+de pesquisa podemos não vir a aceder a todas as posting lists de um
+ficheiro indexer que carregamos, ou seja, estaríamos a desperdiçar
+tempo de computação.
+Para evitar isto, os {\it bulk} loader de indexers carregam o
+conteudo para um mapa em que a chave é o termo e o valor pode ser o
+conteúdo ainda por processar lido do ficheiro ou já processado, isto
+é, usamos o tipo Object.
+
+Relativamente ao document registry, como não tem um overhead tão
+grande de inicialização de objetos como o indexer, simplesmente
+transformamos os identificadores em inteiros, guardamos num array
+continuo e tem de ser dada ao loader a informação de a qual document
+id interno o primeiro identificador diz respeito ($firstDocId$).
+Sabendo isto caso o utilizador queira saber qual a tradução do
+documento com document id $y$ simplesmente acedemos à posição $y –
+firstDocId$. Caso o resultado da subtração anterior dê um índice fora
+do array de identificadores é devolvido {\it null}.
+
+
+\section*{3.4.2.2 io.data\_containers.persisters}
+\begin{figure}[H]
+  \center
+   \includegraphics[width=\linewidth]{packages_io_data_containers_persisters.png}
+  \caption{Diagrama de classes do package \it
+    io.data\_containers.persisters}
+\end{figure}
+
+Os persisters, relativamente à entrega anterior, simplesmente
+receberam uma alteração associada à maneira como deve ser feita a
+segmentação dos indexers e do document registry em disco.
+Na entrega anterior o limite estava imposto no número de entries em
+cada ficheiro, todavia com isto não sabíamos com certeza o tamanho de
+cada ficheiro tanto em disco como em memória.
+
+Para corrigir isto usámos um biblioteca exterior \footnote{Java Agent
+for Memory Measurements - https://github.com/jbellis/jamm/} que
+percorre a árvore de objetos de um objeto e devolve uma aproximação
+em bytes do seu tamanho.
+Isto permite-nos depois fazer load para memória de ficheiros inteiro
+de indexers ou document registry durante a pesquisa e fazer um gestão
+mais informada do que podemos manter em memória durante esse
+processo.
+
 \section*{3.5. searcher}
+
+Aqui está presente a classe que implementa o método de ranked
+retrieval, Searcher.
+Esta tem um método publico onde recebe uma query, que começa por
+fazer a tokenização da query e calcula as term frequencies dos termos
+da query segundo a classe de calculo de pesos
+(SearchingCalculations).
+É de realçar que não estamos a assumir a frequência dos termos da
+query a 1, no entanto isto podia ser facilmente alterado criando uma
+classe descendente de SearchingCalculations que o faz.
+
+Antes de passar a explicar o que se segue, explicamos primeiro como
+gerimos em memória os vários segmentos do indexer e do document
+registry.
+
+Primeiro, tanto os indexers como os document registries têm um número
+máximo de segmentos que podem se mantidos em memória.
+
+Segundo, a certa altura vamos ter de limpar alguns segmentos em
+memória para carregar outros pois não encontramos em memória o termo
+ou identificador que procuramos.
+Para evitar estar a limpar segmentos que possam ser reutilizáveis
+posteriormente, mantemos, para cada segmento, o número de vezes que
+foi consultado e deu uma resposta com sucesso (indexersRanks e
+docRegsRanks).
+Quando temos de limpar a memória retiramos a metade de segmentos que
+teve menor consultas (métodos checkIfCanLoadIndexerFromDisk e
+checkIfCanLoadDocRegFromDisk).
+
+Passando então para a próxima fase de procura onde temos de obter as
+posting lists dos termos da query.
+De maneira a tentar reduzir o número de vezes que carregamos de disco
+diferentes segmentos ordenamos os termos e assim termos a garantia
+que se dois termos da query estiverem no mesmo segmento, este apenas
+só é carregado uma vez.
+Por exemplo se os termos da query forem {\it a, aa, z} e supondo que
+só podemos ter um segmento em memória e que os termos {\it a} e {\it
+aa} estão no mesmo segmento e o {\it z} noutro, ao processar os
+termos na ordem {\it a, z, aa} iria carregar o segmento do {\it a},
+limpa-lo da memória, carregar o do {\it z} e ira carregar novamente o
+primeiro segmento.
+
+Com as posting lists dos termos da query em memória, passamos agora a
+calcular os pesos para cada documento indexado.
+Para isto tiramos partido das nossas posting lists estarem ordenadas
+por ordem crescente de document id o que nos permite encontrar
+facilmente o mesmo documento nas diferentes posting lists.
+Para fazermos isto cada posting list tem um índice associado. Segundo
+estes índices obtemos os documentos das posting lists que têm os
+document ids mais baixos e comuns, ou seja, relativos ao mesmo
+documento.
+Cada um destes documentos tem o peso do respetivo termo da query no
+documento a que estão associado, que é o mesmo pois têm o mesmo
+document id.
+Depois de ser calculado o peso para o documento adiciona-se a
+associação do peso e document id numa lista de documentos relevantes
+e avançam-se os índices das posting lists de onde foram consultados
+os documentos usados para calcular o peso do documento que acabou de
+ser adicionado à lista de documentos relevantes.
+
+\begin{figure}[H]
+  \center
+   \includegraphics[width=\linewidth]{merge_algorithm.png}
+  \caption{Ilustração de como percorridas as posting lists para calcular os pesos para cada documento}
+  \label{fig:merge_algorithm}
+\end{figure}
+
+Na figura \ref{fig:merge_algorithm} podemos ver como são percorridas
+as posting lists de maneira a obter os documentos que referenciam o
+mesmo documento, onde as bolas vermelhas indicam onde os índices da
+respetiva posting list se encontram e as bolas azuis indicam quais os
+documentos que vão ser usados para calcular o peso do documento a
+que estão associados.
+
+Depois disto os documentos relevantes são ordenados de forma
+decrescente de peso e são retornados os primeiros K documentos.
+
+No entanto o id destes documentos tem ainda de ser traduzido para o
+seu identificador original.
+Para isso é feito o mesmo processo em termos de consulta de segmentos
+e gestão de memória que foi feita com o index mas neste caso para o
+document registry.
+
+Neste package encontra-se também a classe responsável por calcular as
+várias métricas de avaliação, em que compara os resultados devolvidos
+pelo Searcher com um conhecido {\it golden standard}.
+
 \section*{3.6. mains}
+\begin{figure}[H]
+  \center
+   \includegraphics[width=10cm]{packages_mains.png}
+  \caption{Diagrama de classes do package \it mains}
+\end{figure}
 
-
-Como foi dito na secção anterior, o código de execução da pipeline
-de indexação que estava presente na classe Main, foi migrado para
-para uma classe do tipo Pipeline. Ou seja, a classe Main apenas
-tem a responsabilidade de instanciar as classes necessárias para
-a execução da pipeline.
-
-\subsubsection{pipelines}
-
-Este package tem as classes que definem a sequência de execução
-do método de indexação. A classe principal (Pipeline) está encarregue
-de iterar sobre o corpus e passar cada FileParser à implementação
-de Pipeline escolhida (método processFile) e depois disso executar
-o método para persistir o indexer.
-
-A classe SimplePipeline representa a pipeline que foi definida no
-assignment anterior, em que não tem considerações relativamente à
-memória no processo de indexação. A SPIMIPipeline apresenta uma
-implementação em que o método de indexação é feito segundo o
-algoritmo SPIMI, em que durante a indexação, sempre que a memória
-ocupada chegar a um limite (80\% da memória máxima), o index atual
-é escrito para disco, ordenado pelos termos. De maneira a criar um index
-final, esta pipeline faz um merge dos vários ficheiros criados na
-fase anterior. Este merge é feito lendo blocos (implementado com a
-classes que usam métodos de buffering enquanto lêm, como por exempo
-BufferedInputStream e BufferedReader) de todos os ficheiros temporários
-criados. Para fazer merge destes blocos, é mantida uma lista à qual é
-adicionada iterativamente a entry (termo e posting list) em que o termo é
-menor (alfabeticamente) de entre as várias entries lidas dos vários
-ficheiros temporários a fazer merge. Caso haja o mesmo termo em
-diferentes blocos é feito o merge das posting lists segundo os
-document ids.
-
-Os ficheiros temporários foram escritos em binário (usando a classe
-ObjectOutputStream), já que se revelou ser muito mais rápido do que
-aplicar a forma de persistência que o utilizador escolhe no Main, no
-caso deste assignment CSV. Para guardar o index final foram criados
-vários ficheiros, tendo cada um um número máximo de entries e para
-saber quais os termos presentes em cada ficheiros deste foi inserido
-como sufixo ao nome dos ficheiros o primeiro termo que guardam.
-
-A classe indexer, para além de guardar o index invertido, guarda também
-o document registry que contêm a associação entre um document id, gerado por nós cada vez que um documento é criado, e o identificador presente nos
-documentos, no caso deste corpus o campo PMID. Como a geração deste id é incremental e não existem vários documentos com o mesmo document id, na
-altura da indexação, quando a memória atingir o limite máximo, podemos
-já escrever esta estrutura num ficheiro final. A maneira como esta
-estrutura será persistida vai ser explicada mais à frente no package
-indexer.persisters.
-
-\subsection{indexer}
-
-Este package foi o que sofreu mais alterações relativamente à entrega
-anterior. Foram criados novas classes indexer (árvore de classes
-WeightsIndexerBase) que guardam pesos tanto para o termos como
-para os documentos presentes nas posting lists. Foi criado também
-um novo package, post\_indexing\_actions, que contêm classes que
-aplicam sobre cada entry do indexer ações depois do processo de
-indexação e antes de serem persistidos de modo final, ou seja, no
-caso da pipeline que aplica o algoritmo SPIMI, estas ações apenas
-serão aplicadas quando uma entry estiver pronta para ser escrita
-para o ficheiro do index final, por outras palavras, depois das
-posting lists dos termos iguais presentes nos vários ficheiros
-temporários serem combinadas. Cada indexer tem uma classe
-post\_indexing\_action especifica associada. Por fim, foi feito
-um refactor relativamente à persistência das estruturas internas
-do indexer.
-
-\subsubsection{indexer.structures}
-
-Deste subpackage foram removidos as classes especificas de termos ou
-documentos, por exemplo um documento com frequência é criado com uma
-classe BlockWithInfo que implementa a interface BaseDocument em que o
-tipo da extraInfo da classe BlockWithInfo é Integer. Para criar um
-documento com weight (float) teria de criar um uma outra classe
-semelhante à anterior mas o tipo da extraInfo seria do tipo Float.
-Para evitar isso criou-se as quatro combinações das classes Block
-(Block e BlockWithInfo) com as classes BaseTerm e BaseDocument.
-
-O package aux\_structs contêm classes a serem usadas no campo
-extraInfo das classes descendentes da classe BlockWithInfo. A
-duas classes representadas são usadas como extraInfo dos documentos
-dos indexers que calculam weights para termos e documentos.
-
-\subsubsection{indexer.io.persisters}
-
-Como as estruturas internas do indexer são mapas, desenvolvemos uma
-nova versão dos persisters em que as classes bases (BasePersister)
-iteram sobre as as entries (key:value) ordenadas pela key, e as
-classes descendentes devem implementar o modo como cada entry é
-escrita para disco. Nos implementamos dois modos de persistência,
-um usando uma ObjectOutputStream e outro usando uma OutputStream.
-A primeira escreve as entries como objectos Map.Entry e o segundo
-escreve a representação da key em bytes, um separador, a
-representação do value em bytes e um terminador. Este ultimo tipo
-de persister implica defenir uma OutputStreamStrategy que define
-a estratégia de transformar as keys e values em bytes. No caso da
-estrutura inverted index do indexer estas estratégias (árvore de
-classes IndexerStrategy) transformam um termo em bytes e cada
-documento das posting lists também em bytes (Criam uma String
-com um determinado formato e devolvem os bytes dessas Strings).
-
-Como os ficheiros escritos são sequenciais, ou seja, para aceder
-a uma parte algures do ficheiro é necessário ler todo o ficheiro
-até à posição especifica. Para tentar reduzir a leitura a ficheiros
-a disco, cada estrutura interna do indexer vai ser escrito para
-vários ficheiros em que cada ficheiro tem um numero máximo de
-entries. Os nomes destes vários ficheiros é a concatenação do
-prefixo definido pelo utilizador mais um contador e a representação
-em string da primeira key guardada nesse ficheiro. O contador é
-usado pois no caso da indexação inicial do algoritmo SPIMI, vários
-ficheiros podem vir a ter o mesmo termo como primeiro termo.
-
-\subsubsection{indexer.io.loaders}
-
-Como os persisters escrevem entries uma a uma, para criar os loaders
-usamos iteradores para ler dos ficheiros. A classe base, BaseLoader,
-definea estrutura básica do iterador o qual as classes descendentes
-devem completar pois a leitura de entries depende do método de
-escrita e da estratégia usada. Criamos duas implementações de
-loader, ObjectStreamLoader que lê objetos entry e o ReaderLoader que
-lê linha a linha. Este último tem depois uma strategy que transforma
-um linha num objeto Map.Entry. Como neste assignment ainda não é
-necessário fazer load do index final, não foram implementados
-strategies especificas para cada indexer.
-
-\subsubsection{indexer.post\_indexing\_actions}
-
-Neste package encontram-se definidas ações para serem executadas
-sobre as vários entries da estrutura inverted index dos indexers,
-depois do processo de indexação e antes de a versão final ser
-persistida para disco. O objetivo principal é realizar cálculos
-que apenas podem ser feitos no fim de ter passado por todos os
-documentos do corpus, os quais são o calculo do idf de cada termo
-(depende do número total de documentos) e a normalização dos pesos
-dos documentos para cada posting list (apenas pode ser calculado
-quando a posting list estiver completa). De maneira a conseguir
-calcular estes pesos, durante a indexação é calculado a frequência
-de cada termo para cada documento, o que depois permite calcular
-o idf para cada termo e o peso do termo para cada documento.
+Como agora temos de criar uma outra aplicação para procurar sobre os
+indexers gerados, criamos um novo main em que executamos um conjunto
+de queries recebidas de um ficheiro que são enviadas para o Search
+sendo depois os resultados avaliados pela classe Evalutation.
 
 \newpage
 
-\section{Resultados}
+\section*{4. Resultados}
 
 Resultados usando os dois ficheiro 2004\_TREC\_ASCII\_MEDLINE gz,
-não fazendo nenhuma limitação da memória através da JVM,  no
-inicio da execução do programa havia por volta de 4GB de memória
-disponível, escritas e leituras  para o disco foram feitas sobre
+fazendo mimite, ,leituras a disco foram feitas sobre
 um HDD e o CPU i5-6300HQ CPU @ 2.30GHz.
 
 {
@@ -407,7 +479,7 @@ um HDD e o CPU i5-6300HQ CPU @ 2.30GHz.
 
 \newpage
 
-\section{Anexos}
+\section*{5. Anexos}
 
 \includegraphics[width=13cm]{arrow_legend.png}
 
