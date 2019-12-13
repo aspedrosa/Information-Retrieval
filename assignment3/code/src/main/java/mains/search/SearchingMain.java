@@ -253,16 +253,16 @@ public class SearchingMain {
             .dest("indexersSize")
             .type(Integer.class)
             .action(Arguments.store())
-            .setDefault(25)
+            .setDefault(10)
             .help("Estimated size of a indexer size in memory in MB" +
-                  " Should be the same value used during indexing. Default 50");
+                  " Should be the same value used during indexing. Default 10");
 
         argsParser
             .addArgument("--doc-regs-size")
             .dest("docRegsSize")
             .type(Integer.class)
             .action(Arguments.store())
-            .setDefault(20)
+            .setDefault(50)
             .help("Estimated size of a document registry file in memory in MB." +
                   " Should be the same value used during indexing. Default 50");
 

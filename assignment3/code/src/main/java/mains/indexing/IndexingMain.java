@@ -281,8 +281,8 @@ public class IndexingMain {
             .dest("maxIndexersSize")
             .type(Integer.class)
             .action(Arguments.store())
-            .setDefault(50)
-            .help("Maximum size in memory for a indexer in MB. Default 50");
+            .setDefault(10)
+            .help("Maximum size in memory for a indexer in MB. Default 10");
 
         argsParser
             .addArgument("--max-doc-regs-size")
