@@ -24,7 +24,7 @@
 
 % TITLE PAGE CONTENT BEGIN
 
-\title{Assignmnet 2}
+\title{Assignmnet 3}
 
 \author{
     André Pedrosa [85098], João Abílio [84732]\\
@@ -34,7 +34,7 @@
     \normalsize{Universidade de Aveiro}\\
 }
 
-\date{13 de outubro de 2019}
+\date{13 de novembro de 2019}
 
 % TITLE PAGE CONTENT END
 
@@ -44,25 +44,25 @@
 
 \maketitle
 
-\section{Introdução}
+\section*{1. Introdução}
 Este relatório apresenta uma explicação do trabalho desenvolvido
-para o segundo assignment da disciplina "Recuperação de Informação",
+para o terceiro assignment da disciplina "Recuperação de Informação",
 explicando as decisões tomadas e o funcionamento da solução.
 
-Esta segunda entrega tem como objetivo fazer incrementos à entrega anterior
-de maneira a aplicar o método SPIMI durante o método de indexação, aplicar
-pesos td-idf aos termos usando o esquema de indexação {\it lnc.ltc} e adicionar
-ao indexer as posições dos termos nos documentos nos quais ele aparece.
+Esta terceira entrega tem como objetivo fazer incrementos à entrega
+anterior de maneira a criar uma pipeline que permitia fazer
+perquisa sobre o index invertido criado na entrega anterior.
 
-No fim serão apresentados a medidas de eficiência pedidas no enunciado do
-assigment para cada novo método de indexação.
+No fim serão apresentados as métricas de eficiência e avaliação dos
+resultados devolvidos pelo motor de pesquisa desenvolvido.
 
-Devido ao elevado número de classes criadas, o diagrama de classes vai ser
-dividido em vários que vão sendo apresentados ao longo do relatório. Estes
-diagramas foram gerados através do IDEA IntelliJ, consequentemente em anexo
-é disponibilizada a legenda da convenção usada.
+Devido ao elevado número de classes criadas, o diagrama de classes
+vai ser dividido em vários que vão sendo apresentados ao longo do
+relatório. Estes diagramas foram gerados através do IDEA IntelliJ,
+consequentemente em anexo é disponibilizada a legenda da convenção
+usada.
 
-\section{Data Flow}
+\section*{2. Data Flow}
 \begin{figure}[h]
   \center
   \includegraphics[width=\linewidth]{newsequenceDiagram.png}
@@ -86,7 +86,7 @@ classes base apresentam métodos {\it final} que chamam depois métodos
 abstratos que devem estar definidos em classes de descendentes (padrão
 Template Method).
 
-\section{Packages}
+\section*{3. Packages}
 \begin{figure}[H]
   \center
   \includegraphics[width=6cm]{packages_all.png}
@@ -96,13 +96,121 @@ Template Method).
 Nesta secção vão ser apresentadas as alterações feitas a cada package
 relativamente à entrega anterior.
 
-\subsection{main}
+\section*{3.1. tokenizer}
+\begin{figure}[H]
+  \center
+  \includegraphics[width=\linewidth]{packages_tokenizer.png}
+  \caption{Diagrama de classes do package \it tokenizer}
+\end{figure}
 
+Este package também não sofreu alterações relativamente à
+entrega anterior.
+
+\section*{3.2. parsers}
+\begin{figure}[H]
+  \center
+  \includegraphics[width=\linewidth]{packages_parsers}
+  \caption{Diagrama de classes do package \it parsers}
+\end{figure}
+
+Este package não sofreu grandes alterações relativamente à entrega
+anterior, apenas foi alterado o tipo de dados do identificador
+original de cada documento de {\it String} para {\it int}.
+
+\section*{3.3. data\_containers}
+Na entrega anterior tanto o inverted index como o document registry
+estavam presentes na mesma classe, Indexer.
+Isto trazia alguns problemas para a pipeline de responder a queries
+pois quando o inverted index era carregado o respetivo document
+registry devia também de ser carregado.
+No entanto um termo pode ter um documento de id 1, que foi o primeiro
+a ser indexado, e outro com id 4.000.000, um dos últimos a serem
+indexados.
+Isto implicava consultar diferentes segmentos do document registry já
+em disco na altura de indexação, isto supondo que não todos em
+memória.
+
+Com isto em consideração separamos o document registry e o indexer em
+duas classes, o Indexer que contem o inverted index (Map) e o
+DocumentRegistry que contem a tradução entre o nosso identificador
+interno com o identificador original (Map).
+É de realçar que estas classes apenas serão usadas em tempo de
+indexação.
+
+\section*{3.3.1. data\_containers.indexer}
 \begin{figure}[h]
   \center
-  \includegraphics[width=6cm]{packages_main.png}
-  \caption{Diagrama de classes do package \it main}
+  \includegraphics[width=\linewidth]{packages_data_containers_indexer.png}
+  \caption{Diagrama de classes do package \it
+    data\_containers.indexer}
 \end{figure}
+
+Este package sofreu algumas alterações, no entanto as alterações
+foram feitas mais ao nível dos sub packages o que levou a adaptações
+depois das classes presentes na root deste package.
+
+\section*{3.3.1.1 data\_containers.indexer.post\_indexing\_actions}
+\begin{figure}[h]
+  \center
+   \includegraphics[width=6cm]{packages_data_containers_indexer_post_indexing_actions.png}
+  \caption{Diagrama de classes do package \it
+    data\_containers.indexer}
+\end{figure}
+
+Como na entrega anterior o pesos dos documentos estavam a ser mal
+calculados, estando a ser calculados por termos em ver de por
+documentos, a {\it post indexing action} criada agora apenas calcula
+o idf dos termos, que apenas pode ser calculado no final do processo
+de indexação.
+
+\section*{3.3.1.2 data\_containers.indexer.structures}
+\begin{figure}[H]
+  \center
+   \includegraphics[width=7cm]{packages_data_containers_indexer_structures.png}
+  \caption{Diagrama de classes do package \it
+    data\_containers.indexer.structure}
+\end{figure}
+
+Neste package temos as estruturas que vão ser usadas para armazenar a
+informação relativa aos documentos indexados no inverted index.
+
+Este package sofreu algumas alterações devido ao facto de em entregas
+anteriores objetos com informação serem usados como chave do inverted
+index e esta ser necessária posteriormente na fase de pesquisa. Mais
+concretamente falamos do objeto Term em que usávamos o termo para
+gerar o hashcode e também para comprar objetos Term para depois ser
+inserido em HashMaps ou ordenados respetivamente.
+
+Um exemplo de informação extra que era guardada no objeto Term era o
+idf de um termo. No entanto para obter este teríamos de percorrer
+todas as chaves do HashMap até encontrar aquela que tinha o termo
+igual ao que queríamos obter o idf. Isto é uma operação $O(n)$, ou
+seja, estávamos a perder o tempo constante de acesso a um HashMap.
+
+De maneira a corrigir o problema apenas definimos objetos para os
+valores associados a um termo indexado, ou seja, os valores de um
+HashMap. Estes valores são do tipo {\it TermInfoBase} que contêm
+sempre uma posting list de documentos. Cada documento tem sempre um
+id e um peso associado. Podem ainda existir subclasses da classe {\it
+TermInfoBase} que podem ter outras informações como o idf (objeto
+{\it TermInfoWithIdf}) e os documentos podem também ter outras
+informações associadas como as posições (objecto {\it
+DocumentWithInfo}).
+
+\section*{3.3.1.3 data\_containers.indexer.weights\_calculation}
+\begin{figure}[H]
+  \center
+   \includegraphics[width=\linewidth]{packages_data_containers_indexer_weights_calculation.png}
+  \caption{Diagrama de classes do package \it
+    data\_containers.indexer.weights\_calculations}
+\end{figure}
+asdfsdf
+
+\section*{3.4. io}
+\section*{3.4.1 io.metadata}
+\section*{3.4.2 io.data\_containers}
+\section*{3.5. searcher}
+\section*{3.6. mains}
 
 
 Como foi dito na secção anterior, o código de execução da pipeline
@@ -112,12 +220,6 @@ tem a responsabilidade de instanciar as classes necessárias para
 a execução da pipeline.
 
 \subsubsection{pipelines}
-
-\begin{figure}[h]
-  \center
-  \includegraphics[width=14cm]{packages_main_pipelines.png}
-  \caption{Diagrama de classes do package \it main.pipelines}
-\end{figure}
 
 Este package tem as classes que definem a sequência de execução
 do método de indexação. A classe principal (Pipeline) está encarregue
@@ -159,37 +261,7 @@ já escrever esta estrutura num ficheiro final. A maneira como esta
 estrutura será persistida vai ser explicada mais à frente no package
 indexer.persisters.
 
-\subsection{parsers}
-\begin{figure}[H]
-  \center
-  \includegraphics[width=\linewidth]{packages_parsers}
-  \caption{Diagrama de classes do package \it parsers}
-\end{figure}
-
-Este package não sofreu grandes alterações relativamente à entrega
-anterior, apenas foi alterado algumas mensagens de erro, os id dos
-documentos agora começa em 0 e algumas operações sobre strings,
-que não alteram o resultado final, obtidas dos ficheiros do corpus
-foram removidas, como .trim(), para tentar reduzir o número de
-instanciações da classe String.
-
-\subsection{tokenizer}
-\begin{figure}[H]
-  \center
-  \includegraphics[width=\linewidth]{packages_tokenizer.png}
-  \caption{Diagrama de classes do package \it tokenizer}
-\end{figure}
-
-Este package também não sofreu grandes alterações relativamente à
-entrega anterior, apenas foi criada uma nova Linguistica Rule que
-remove os termos que têm menos de um certo número de caracteres.
-
 \subsection{indexer}
-\begin{figure}[H]
-  \center
-  \includegraphics[width=\linewidth]{packages_indexer.png}
-  \caption{Diagrama de classes do package \it indexer}
-\end{figure}
 
 Este package foi o que sofreu mais alterações relativamente à entrega
 anterior. Foram criados novas classes indexer (árvore de classes
@@ -208,11 +280,6 @@ um refactor relativamente à persistência das estruturas internas
 do indexer.
 
 \subsubsection{indexer.structures}
-\begin{figure}[H]
-  \center
-  \includegraphics[width=10cm]{packages_indexer_structures.png}
-  \caption{Diagrama de classes do package \it indexer.structures}
-\end{figure}
 
 Deste subpackage foram removidos as classes especificas de termos ou
 documentos, por exemplo um documento com frequência é criado com uma
@@ -223,23 +290,12 @@ semelhante à anterior mas o tipo da extraInfo seria do tipo Float.
 Para evitar isso criou-se as quatro combinações das classes Block
 (Block e BlockWithInfo) com as classes BaseTerm e BaseDocument.
 
-\begin{figure}[h]
-  \center
-  \includegraphics[width=5cm]{packages_indexer_structures_auxstructs.png}
-  \caption{Diagrama de classes do package \it indexer.structures.aux\_structs}
-\end{figure}
-
 O package aux\_structs contêm classes a serem usadas no campo
 extraInfo das classes descendentes da classe BlockWithInfo. A
 duas classes representadas são usadas como extraInfo dos documentos
 dos indexers que calculam weights para termos e documentos.
 
 \subsubsection{indexer.io.persisters}
-\begin{figure}[H]
-  \center
-  \includegraphics[width=\linewidth]{packages_indexer_io_persisters.png}
-  \caption{Diagrama de classes do package \it indexer.io.persisters}
-\end{figure}
 
 Como as estruturas internas do indexer são mapas, desenvolvemos uma
 nova versão dos persisters em que as classes bases (BasePersister)
@@ -269,11 +325,6 @@ usado pois no caso da indexação inicial do algoritmo SPIMI, vários
 ficheiros podem vir a ter o mesmo termo como primeiro termo.
 
 \subsubsection{indexer.io.loaders}
-\begin{figure}[H]
-  \center
-  \includegraphics[width=12cm]{packages_indexer_io_loaders.png}
-  \caption{Diagrama de classes do package \it indexer.io.loaders}
-\end{figure}
 
 Como os persisters escrevem entries uma a uma, para criar os loaders
 usamos iteradores para ler dos ficheiros. A classe base, BaseLoader,
@@ -287,12 +338,6 @@ necessário fazer load do index final, não foram implementados
 strategies especificas para cada indexer.
 
 \subsubsection{indexer.post\_indexing\_actions}
-
-\begin{figure}[H]
-  \center
-  \includegraphics[width=8cm]{packages_indexer_postindexingactions.png}
-  \caption{Diagrama de classes do package \it indexer.post\_indexing\_actions}
-\end{figure}
 
 Neste package encontram-se definidas ações para serem executadas
 sobre as vários entries da estrutura inverted index dos indexers,
@@ -317,21 +362,48 @@ inicio da execução do programa havia por volta de 4GB de memória
 disponível, escritas e leituras  para o disco foram feitas sobre
 um HDD e o CPU i5-6300HQ CPU @ 2.30GHz.
 
-\begin{tabular}{| p{0.4\linewidth} | p{0.2\linewidth} | p{0.2\linewidth} | p{0.2\linewidth} |}
-        \hline
-        & \bf SPIMI com frequências
-        & \bf SPIMI com pesos
-        & \bf SPIMI com pesos e posições\\
-        \hline
-        Tempo de indexação (mm:ss) & 5:22 & 6:42 & 10:54 \\
-        \hline
-        Tamanho do index em disco (MB) & 1150 & 1296 & 1373 \\
-        \hline
-        Memória máxima usada (MB)* & 1457 & 1627 & 1597 \\
-    \hline
-\end{tabular}
+{
+\tiny
+\begin{tabular}{| c | c | c | c | c | c | c | c |}
+        \hline K
+        & \bf  Média precision
+        & \bf  Média recall
+        & \bf  Média F-measure
+        & \bf  Média Average Precision
+        & \bf  Média NDCG
+        & \bf  Query throughput
+        & \bf  Query latency \\
 
-* segundo o gráfico presente na aba Monitor do VisualVM
+        \hline 10
+        &
+        &
+        &
+        &
+        &
+        &
+        & 1 \\
+
+        \hline 20
+        &
+        &
+        &
+        &
+        &
+        &
+        & 1 \\
+
+        \hline 50
+        &
+        &
+        &
+        &
+        &
+        &
+        & 1 \\
+        \hline
+
+\end{tabular}
+}
 
 \newpage
 
