@@ -327,6 +327,11 @@ mais informada do que podemos manter em memória durante esse
 processo.
 
 \section*{3.5. searcher}
+\begin{figure}[H]
+  \center
+   \includegraphics[width=\linewidth]{packages_searcher.png}
+  \caption{Diagrama de classes do package \it searcher}
+\end{figure}
 
 Aqui está presente a classe que implementa o método de ranked
 retrieval, Searcher.
@@ -430,52 +435,157 @@ sendo depois os resultados avaliados pela classe Evalutation.
 
 \section*{4. Resultados}
 
-Resultados usando os dois ficheiro 2004\_TREC\_ASCII\_MEDLINE gz,
-fazendo mimite, ,leituras a disco foram feitas sobre
-um HDD e o CPU i5-6300HQ CPU @ 2.30GHz.
+Resultados usando os dois ficheiro 2004\_TREC\_ASCII\_MEDLINE gz em
+que as leituras a disco foram feitas sobre um HDD e o CPU i5-6300HQ
+CPU @ 2.30GHz.
 
-{
-\tiny
-\begin{tabular}{| c | c | c | c | c | c | c | c |}
-        \hline K
-        & \bf  Média precision
-        & \bf  Média recall
-        & \bf  Média F-measure
-        & \bf  Média Average Precision
-        & \bf  Média NDCG
-        & \bf  Query throughput
-        & \bf  Query latency \\
+\begin{center}
+    \small
+    \begin{tabular}{| c | c | c | c | c | c |}
+            \hline
+            K
+            & \bf  Média precision
+            & \bf  Média recall
+            & \bf  Média F-measure
+            & \bf  Média Average Precision
+            & \bf  Média NDCG \\ \hline
 
-        \hline 10
-        &
-        &
-        &
-        &
-        &
-        &
-        & 1 \\
+            10
+            & 0.284
+            & 0.064
+            & 0.085
+            & 0.429
+            & 0.508 \\ \hline
 
-        \hline 20
-        &
-        &
-        &
-        &
-        &
-        &
-        & 1 \\
+            20
+            & 0.242
+            & 0.078
+            & 0.100
+            & 0.434
+            & 0.529 \\ \hline
 
-        \hline 50
-        &
-        &
-        &
-        &
-        &
-        &
-        & 1 \\
+            50
+            & 0.202
+            & 0.111
+            & 0.125
+            & 0.390
+            & 0.500 \\ \hline
+
+    \end{tabular}
+\end{center}
+
+Foi feito também um estudo do impacto do tamanho dos ficheiros dos
+segmentos do indexer e document registry na query latency e query
+throughput.
+
+Estes testes foram corridos dando à JVM o máximo de memória 2G.
+O programa funciona para limites de memória mais baixos como por
+exemplo 1G no entanto é preciso alterar algumas definições de defeito
+definindo algumas opções do programa.
+
+\begin{center}
+    \small
+    \begin{tabular}{| c | c | c |}
         \hline
+        K
+        & \bf Query latency (segundos)
+        & \bf Query throughput (por segundo) \\ \hline
 
-\end{tabular}
-}
+        \multicolumn{3}{|c|}{Indexer: 10MB, Document Registry: 25MB} \\ \hline
+
+        10
+        & 0.709
+        & 1.411 \\ \hline
+
+        20
+        & 0.698
+        & 1.433 \\ \hline
+
+        50
+        & 0.653
+        & 1.531 \\ \hline
+
+        \multicolumn{3}{|c|}{Indexer: 10MB, Document Registry: 50MB} \\ \hline
+
+        10
+        & 0.714
+        & 1.400 \\ \hline
+
+        20
+        & 0.678
+        & 1.474 \\ \hline
+
+        50
+        & 0.796
+        & 1.256 \\ \hline
+
+        \multicolumn{3}{|c|}{Indexer: 25MB, Document Registry: 25MB} \\ \hline
+
+        10
+        & 0.884
+        & 1.131 \\ \hline
+
+        20
+        & 0.913
+        & 1.096 \\ \hline
+
+        50
+        & 0.815
+        & 1.227 \\ \hline
+
+        \multicolumn{3}{|c|}{Indexer: 25MB, Document Registry: 50MB} \\ \hline
+
+        10
+        & 0.924
+        & 1.083 \\ \hline
+
+        20
+        & 0.862
+        & 1.161 \\ \hline
+
+        50
+        & 0.950
+        & 1.053 \\ \hline
+
+        \multicolumn{3}{|c|}{Indexer: 50MB, Document Registry: 25MB} \\ \hline
+
+        10
+        & 1.127
+        & 0.887 \\ \hline
+
+        20
+        & 1.269
+        & 0.788 \\ \hline
+
+        50
+        & 1.087
+        & 0.920 \\ \hline
+
+        \multicolumn{3}{|c|}{Indexer: 50MB, Document Registry: 50MB} \\ \hline
+
+        10
+        & 1.176
+        & 0.850 \\ \hline
+
+        20
+        & 1.099
+        & 0.910 \\ \hline
+
+        50
+        & 1.223
+        & 0.818 \\ \hline
+
+    \end{tabular}
+\end{center}
+
+De maneira a gerar os vários indexar o mais rápido, geramos um script
+que lançava o processo de indexação com o máximo de memória
+disponível (por volta de 6G) em que os tempos variaram entre 36
+minutos e 60 minutos.
+
+Podemos ver também que que os tempos melhoram com ficheiros com menos
+tamanho no entanto isto pode levar a um grande número de segmentos,
+tendo assim que ter mais metadados em memória.
 
 \newpage
 
