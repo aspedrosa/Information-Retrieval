@@ -69,7 +69,7 @@ public class TrecAsciiMedline2004DocParser implements DocumentParser {
                     // if the label of the field is PMID save it's content to
                     //  the identifier
                     if (label.equals(ID_FIELD)) {
-                        document.setIdentifier(content.toString());
+                        document.setIdentifier(Integer.parseInt(content.toString()));
                     }
                     else {
                         // else add the content to the toTokenize list
@@ -89,7 +89,7 @@ public class TrecAsciiMedline2004DocParser implements DocumentParser {
         }
         // or is the identifier
         else if (label.endsWith(ID_FIELD)) {
-            document.setIdentifier(content.toString());
+            document.setIdentifier(Integer.parseInt(content.toString()));
         }
 
         return document;

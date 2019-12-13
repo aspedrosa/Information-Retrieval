@@ -3,7 +3,7 @@ package data_containers.indexer;
 import data_containers.indexer.post_indexing_actions.CalculateIDFAction;
 import data_containers.indexer.structures.Document;
 import data_containers.indexer.structures.TermInfoWithIDF;
-import data_containers.indexer.weights_calculation.indexing.CalculationsBase;
+import data_containers.indexer.weights_calculation.indexing.IndexingCalculations;
 
 import java.util.Map;
 
@@ -17,12 +17,12 @@ public abstract class WeightsIndexerBase<D extends Document<Float>>
     extends BaseIndexer<
     String, Float, D, TermInfoWithIDF<Float, D>> {
 
-    protected CalculationsBase calculations;
+    protected IndexingCalculations calculations;
 
     /**
      * Main constructor
      */
-    public WeightsIndexerBase(CalculationsBase calculations) {
+    public WeightsIndexerBase(IndexingCalculations calculations) {
         super(new CalculateIDFAction<>());
         this.calculations = calculations;
     }

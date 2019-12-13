@@ -1,6 +1,5 @@
-package io.data_containers.loaders.bulk_load;
+package io.data_containers.loaders.bulk_load.indexer;
 
-import data_containers.indexer.structures.Document;
 import data_containers.indexer.structures.DocumentWithInfo;
 import data_containers.indexer.structures.TermInfoWithIDF;
 
@@ -10,11 +9,16 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
-public class WeightsAndPositionsIndexerLoader extends LinesLoader<String, TermInfoWithIDF<Float, DocumentWithInfo<Float, List<Integer>>>> {
+/**
+ * Specific type of bulk loader for indexer with weights and positions
+ */
+public class WeightsAndPositionsIndexerLoader extends LinesLoader<
+    String,
+    Float,
+    DocumentWithInfo<Float, List<Integer>>,
+    TermInfoWithIDF<Float, DocumentWithInfo<Float, List<Integer>>>> {
 
     private static final Pattern separatorsRegex = Pattern.compile("[:;]");
-
-    private static final Pattern positionsSeparatorsRegex = Pattern.compile(",");
 
     public WeightsAndPositionsIndexerLoader(String folder) {
         super(folder);
@@ -44,16 +48,19 @@ public class WeightsAndPositionsIndexerLoader extends LinesLoader<String, TermIn
             return null;
         }
 
+        // if the value is already in a TermInfoWithIdf object
         if (value instanceof TermInfoWithIDF) {
+            // return it
             return (TermInfoWithIDF<Float, DocumentWithInfo<Float, List<Integer>>>) value;
         }
         else {
+            // else parse the string and convert it to a TermInfoWithIdf object
             String[] elements = separatorsRegex.split((String) value);
 
             List<DocumentWithInfo<Float, List<Integer>>> postingList = new ArrayList<>((elements.length - 1) / 3);
 
             for (int i = 1; i < elements.length; i += 3) {
-                String[] positionsStrings = positionsSeparatorsRegex.split(elements[i + 2]);
+                String[] positionsStrings = elements[i + 2].split(",");
 
                 List<Integer> positions = new ArrayList<>(positionsStrings.length);
                 for (String positionsString : positionsStrings) {
@@ -74,6 +81,7 @@ public class WeightsAndPositionsIndexerLoader extends LinesLoader<String, TermIn
                 Float.parseFloat(elements[0]) // idf
             );
 
+            // update the term information from raw data to the term information object
             loadedMap.put(term, termInfo);
 
             return termInfo;

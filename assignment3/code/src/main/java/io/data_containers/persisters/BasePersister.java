@@ -22,7 +22,7 @@ public abstract class BasePersister<K extends Comparable, V> implements Closeabl
 
     protected String outputFolder;
 
-    private MemoryMeter meter;
+    protected MemoryMeter meter;
 
     /**
      * Count of entries currently written
@@ -46,9 +46,24 @@ public abstract class BasePersister<K extends Comparable, V> implements Closeabl
      */
     protected List<String> firstKeys;
 
+    private boolean considerOnlyValueForMemory;
+
     public BasePersister(String outputFolder, long limitFileSize) {
         this.outputFolder = outputFolder;
         this.limitFileSize = limitFileSize;
+
+        this.currentFileSize = 0;
+        this.filesCounter = 0;
+        this.firstKeys = new ArrayList<>();
+
+        this.meter = new MemoryMeter();
+        this.considerOnlyValueForMemory = false;
+    }
+
+    public BasePersister(String outputFolder, long limitFileSize, boolean considerOnlyValueForMemory) {
+        this.outputFolder = outputFolder;
+        this.limitFileSize = limitFileSize;
+        this.considerOnlyValueForMemory = considerOnlyValueForMemory;
 
         this.currentFileSize = 0;
         this.filesCounter = 0;
@@ -105,7 +120,9 @@ public abstract class BasePersister<K extends Comparable, V> implements Closeabl
         for (int i = 0; i < sortedEntries.size(); i++) {
             long currentEntrySize = 0;
             if (limitFileSize > 0) {
-                currentEntrySize = meter.measureDeep(sortedEntries.get(i));
+                currentEntrySize = meter.measureDeep(
+                    considerOnlyValueForMemory ? sortedEntries.get(i).getValue() : sortedEntries.get(i)
+                );
 
                 if ( currentFileSize + currentEntrySize > limitFileSize ) {
                     close();

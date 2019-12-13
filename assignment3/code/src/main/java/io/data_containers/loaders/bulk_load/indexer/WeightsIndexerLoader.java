@@ -1,19 +1,21 @@
-package io.data_containers.loaders.bulk_load;
+package io.data_containers.loaders.bulk_load.indexer;
 
 import data_containers.indexer.structures.Document;
 import data_containers.indexer.structures.TermInfoWithIDF;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
+/**
+ * Specific type of bulk loader for indexer with weights
+ */
 public class WeightsIndexerLoader extends LinesLoader<
     String,
+    Float,
+    Document<Float>,
     TermInfoWithIDF<Float, Document<Float>>
     > {
 
@@ -47,10 +49,13 @@ public class WeightsIndexerLoader extends LinesLoader<
             return null;
         }
 
+        // if the value is already in a TermInfo object
         if (value instanceof TermInfoWithIDF) {
+            // return it
             return (TermInfoWithIDF<Float, Document<Float>>) value;
         }
         else {
+            // else parse the string and convert it to a TermInfo object
             String[] elements = separatorsRegex.split((String) value);
 
             List<Document<Float>> postingList = new ArrayList<>((elements.length - 1) / 2);
@@ -69,6 +74,7 @@ public class WeightsIndexerLoader extends LinesLoader<
                 Float.parseFloat(elements[0]) // idf
             );
 
+            // update the term information from raw data to the term information object
             loadedMap.put(term, termInfo);
 
             return termInfo;

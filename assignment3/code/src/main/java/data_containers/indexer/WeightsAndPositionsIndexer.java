@@ -1,7 +1,7 @@
 package data_containers.indexer;
 
 import data_containers.indexer.structures.DocumentWithInfo;
-import data_containers.indexer.weights_calculation.indexing.CalculationsBase;
+import data_containers.indexer.weights_calculation.indexing.IndexingCalculations;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,7 +26,7 @@ public class WeightsAndPositionsIndexer extends WeightsIndexerBase<DocumentWithI
      * indexer, on the indexer it creates the necessary
      * classes specific to it
      */
-    public WeightsAndPositionsIndexer(CalculationsBase calculations) {
+    public WeightsAndPositionsIndexer(IndexingCalculations calculations) {
         super(calculations);
         auxTermsPositions = new HashMap<>();
     }

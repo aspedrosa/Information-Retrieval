@@ -28,6 +28,11 @@ public class ObjectStreamPersister<K extends Comparable, V> extends BasePersiste
         wroteNull = false;
     }
 
+    public ObjectStreamPersister(String outputFolder, int limitFileSize, boolean considerOnlyValueForMemory) {
+        super(outputFolder, limitFileSize, considerOnlyValueForMemory);
+        wroteNull = false;
+    }
+
     @Override
     protected boolean outputIsNull() {
         return currentOutput == null;

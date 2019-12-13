@@ -1,11 +1,9 @@
 package mains.search;
 
-import data_containers.indexer.WeightsAndPositionsIndexer;
-import data_containers.indexer.WeightsIndexer;
 import data_containers.indexer.weights_calculation.searching.LTC;
-import io.data_containers.loaders.bulk_load.DocRegTextBulkLoader;
-import io.data_containers.loaders.bulk_load.WeightsAndPositionsIndexerLoader;
-import io.data_containers.loaders.bulk_load.WeightsIndexerLoader;
+import io.data_containers.loaders.bulk_load.document_registry.LinesLoader;
+import io.data_containers.loaders.bulk_load.indexer.WeightsAndPositionsIndexerLoader;
+import io.data_containers.loaders.bulk_load.indexer.WeightsIndexerLoader;
 import io.metadata.BinaryMetadataManager;
 import io.metadata.MetadataManager;
 import net.sourceforge.argparse4j.ArgumentParsers;
@@ -113,7 +111,7 @@ public class Main {
                 new LTC(),
                 docRegMetadata,
                 indexerMetadata,
-                new DocRegTextBulkLoader(docRegsFolder),
+                new LinesLoader(docRegsFolder),
                 new WeightsAndPositionsIndexerLoader(indexersFolder),
                 maxDocRegsInMemory,
                 maxIndexersInMemory,
@@ -126,7 +124,7 @@ public class Main {
                 new LTC(),
                 docRegMetadata,
                 indexerMetadata,
-                new DocRegTextBulkLoader(docRegsFolder),
+                new LinesLoader(docRegsFolder),
                 new WeightsIndexerLoader(indexersFolder),
                 maxDocRegsInMemory,
                 maxIndexersInMemory,
@@ -260,7 +258,7 @@ public class Main {
             .dest("indexersSize")
             .type(Integer.class)
             .action(Arguments.store())
-            .setDefault(50)
+            .setDefault(25)
             .help("Estimated size of a indexer size in memory in MB" +
                   " Should be the same value used during indexing. Default 50");
 
@@ -269,7 +267,7 @@ public class Main {
             .dest("docRegsSize")
             .type(Integer.class)
             .action(Arguments.store())
-            .setDefault(50)
+            .setDefault(20)
             .help("Estimated size of a document registry file in memory in MB." +
                   " Should be the same value used during indexing. Default 50");
 

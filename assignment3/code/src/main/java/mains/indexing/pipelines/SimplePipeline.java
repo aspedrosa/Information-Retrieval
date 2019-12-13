@@ -41,7 +41,7 @@ public class SimplePipeline<
                           BaseIndexer<T, W, D, I> indexer,
                           CorpusReader corpusReader,
                           BasePersister<T, I> finalIndexPersister,
-                          BasePersister<Integer, String> docRegistryPersister,
+                          BasePersister<Integer, Integer> docRegistryPersister,
                           MetadataManager metadataManager) {
         super(tokenizer, indexer, corpusReader, finalIndexPersister, docRegistryPersister, metadataManager);
     }

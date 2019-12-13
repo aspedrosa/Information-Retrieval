@@ -15,7 +15,7 @@ import java.util.Map;
  * @param <D> type of the document
  * @param <I> type of the term information
  */
-public interface CalculationsBase<
+public interface SearchingCalculations<
     T extends Comparable<T>,
     W extends Number,
     D extends Document<W>,

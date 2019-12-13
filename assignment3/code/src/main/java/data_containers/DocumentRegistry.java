@@ -18,7 +18,7 @@ public class DocumentRegistry {
     /**
      * Associates a document id to an identifier of a document
      */
-    protected Map<Integer, String> registry;
+    protected Map<Integer, Integer> registry;
 
     /**
      * Constructor for indexing execution
@@ -46,7 +46,7 @@ public class DocumentRegistry {
      *
      * @return an unmodifiable version of the documentRegistry
      */
-    public Map<Integer, String> getRegistry() {
+    public Map<Integer, Integer> getRegistry() {
         return Collections.unmodifiableMap(registry);
     }
 
@@ -55,7 +55,7 @@ public class DocumentRegistry {
      *
      * @param identifier of the document (probably found on the content of the document)
      */
-    public int registerDocument(String identifier) {
+    public int registerDocument(Integer identifier) {
         int docId = ++NUMBER_OF_DOCUMENTS;
 
         registry.put(docId, identifier);

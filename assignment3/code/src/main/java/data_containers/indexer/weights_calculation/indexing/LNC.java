@@ -11,7 +11,7 @@ import java.util.Map;
  *     <li>cosine normalization</li>
  * </ul>
  */
-public class LNC implements CalculationsBase {
+public class LNC implements IndexingCalculations {
 
     private float cosineNormalization;
 

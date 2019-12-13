@@ -1,5 +1,6 @@
 /**
- * Classes that read from disk all the content of a file
- *  containing a data_container
+ * Classes used to load an entire file of
+ *  data_containers (indexer or document registry)
+ *  to memory
  */
 package io.data_containers.loaders.bulk_load;

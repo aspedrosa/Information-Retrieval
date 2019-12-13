@@ -177,6 +177,7 @@ public class Main {
                 new OutputStreamPersister<>(
                     documentRegistryFolder,
                     maxDocRegSize,
+                    true,
                     new DocumentRegistryStrategy()
                 ),
                 new OutputStreamPersister<>(

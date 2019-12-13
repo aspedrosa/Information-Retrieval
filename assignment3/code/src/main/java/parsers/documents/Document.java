@@ -16,7 +16,7 @@ public class Document {
      * Unique identifier of the document to be associated
      *  to its id
      */
-    private String identifier;
+    private Integer identifier;
 
     /**
      * Document content to be fed to the tokenizer
@@ -28,7 +28,7 @@ public class Document {
      *
      * @param identifier new identifier
      */
-    public void setIdentifier(String identifier) {
+    public void setIdentifier(Integer identifier) {
         this.identifier = identifier;
     }
 
@@ -46,7 +46,7 @@ public class Document {
      *
      * @return document field
      */
-    public String getIdentifier() {
+    public Integer getIdentifier() {
         return identifier;
     }
 

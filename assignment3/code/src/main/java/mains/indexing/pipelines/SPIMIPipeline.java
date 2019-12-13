@@ -76,7 +76,7 @@ public class SPIMIPipeline<
                          BaseIndexer<T, W, D, I> indexer,
                          CorpusReader corpusReader,
                          String tmpFolder,
-                         BasePersister<Integer, String> docRegistryPersister,
+                         BasePersister<Integer, Integer> docRegistryPersister,
                          BasePersister<T, I> finalIndexPersister,
                          MetadataManager metadataManager,
                          float maxLoadFactor) {

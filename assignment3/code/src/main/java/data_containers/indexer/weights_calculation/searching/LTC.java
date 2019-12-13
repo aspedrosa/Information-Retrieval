@@ -26,7 +26,7 @@ public class LTC<
     W extends Number,
     D extends Document<W>,
     I extends TermInfoWithIDF<W, D>
-    > implements CalculationsBase<T, W, D, I> {
+    > implements SearchingCalculations<T, W, D, I> {
 
     private float cosineNormalization = 0;
 

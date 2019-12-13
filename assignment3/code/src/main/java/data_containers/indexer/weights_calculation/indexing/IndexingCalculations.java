@@ -6,7 +6,7 @@ import java.util.Map;
  * Base class to define a variant to calculate weights
  *  during the indexing pipeline for documents
  */
-public interface CalculationsBase {
+public interface IndexingCalculations {
 
     /**
      * Calculates the weights for documents without normalization

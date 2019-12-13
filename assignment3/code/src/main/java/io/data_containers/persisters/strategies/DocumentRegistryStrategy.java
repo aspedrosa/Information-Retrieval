@@ -2,24 +2,25 @@ package io.data_containers.persisters.strategies;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Map;
 
 /**
  * Strategy to persist the document registry in text
  */
-public class DocumentRegistryStrategy extends OutputStreamStrategy<Integer, String> {
+public class DocumentRegistryStrategy extends OutputStreamStrategy<Integer, Integer> {
 
     public DocumentRegistryStrategy() {
-        super(",".getBytes(), "\n".getBytes());
+        super(new byte[0], "\n".getBytes());
     }
 
     @Override
     public byte[] handleKey(Integer key) {
-        return key.toString().getBytes();
+        return new byte[0];
     }
 
     @Override
-    public void handleValue(OutputStream output, String value) {
-        byte[] identifierBytes = value.getBytes();
+    public void handleValue(OutputStream output, Integer value) {
+        byte[] identifierBytes = value.toString().getBytes();
 
         try {
             output.write(identifierBytes, 0, identifierBytes.length);
@@ -29,4 +30,5 @@ public class DocumentRegistryStrategy extends OutputStreamStrategy<Integer, Stri
             System.exit(2);
         }
     }
+
 }

@@ -2,18 +2,21 @@ package searcher;
 
 import data_containers.indexer.structures.Document;
 import data_containers.indexer.structures.TermInfoBase;
-import data_containers.indexer.weights_calculation.searching.CalculationsBase;
-import io.data_containers.loaders.bulk_load.BulkLoader;
+import data_containers.indexer.weights_calculation.searching.SearchingCalculations;
+import io.data_containers.loaders.bulk_load.document_registry.DocRegBulkLoader;
+import io.data_containers.loaders.bulk_load.indexer.IndexerBulkLoader;
 import tokenizer.BaseTokenizer;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class Searcher<D extends Document<Float>,
     I extends TermInfoBase<Float, D>
@@ -24,19 +27,19 @@ public class Searcher<D extends Document<Float>,
     /**
      * Defines variant to calculate the weights
      */
-    private CalculationsBase<String, Float, D, I> calculations;
+    private SearchingCalculations<String, Float, D, I> calculations;
 
     private TreeMap<Integer, String> docRegMetadata;
 
     private TreeMap<String, String> indexerMetadata;
 
-    private TreeMap<Integer, Map<Integer, Object>> docRegsInMemory;
+    private TreeMap<Integer, DocRegBulkLoader.DocumentRegistry> docRegsInMemory;
 
     private TreeMap<String, Map<String, Object>> indexersInMemory;
 
-    private BulkLoader<Integer, String> docRegLoader;
+    private DocRegBulkLoader docRegLoader;
 
-    private BulkLoader<String, I> indexerLoader;
+    private IndexerBulkLoader<String, Float, D, I> indexerLoader;
 
     private int maxDocRegsInMemory;
 
@@ -59,11 +62,11 @@ public class Searcher<D extends Document<Float>,
 
     public Searcher(
         BaseTokenizer tokenizer,
-        CalculationsBase<String, Float, D, I> calculations,
+        SearchingCalculations<String, Float, D, I> calculations,
         TreeMap<Integer, String> docRegMetadata,
         TreeMap<String, String> indexerMetadata,
-        BulkLoader<Integer, String> docRegLoader,
-        BulkLoader<String, I> indexerLoader,
+        DocRegBulkLoader docRegLoader,
+        IndexerBulkLoader<String, Float, D, I> indexerLoader,
         int maxDocRegsInMemory,
         int maxIndexersInMemory,
         int K
@@ -108,7 +111,8 @@ public class Searcher<D extends Document<Float>,
      *  of the terms present on the query
      */
     private void getPostingListsOfQueryTerms(Map<String, Float> termFrequencyWeights, List<String> terms, List<List<D>> postingLists) {
-        termFrequencyWeights.forEach((term, frequency) -> {
+        termFrequencyWeights.keySet().stream().sorted(String::compareTo).forEach(term -> {
+            float frequency = termFrequencyWeights.get(term);
             Map.Entry<String, Map<String, Object>> indexerEntry = indexersInMemory.floorEntry(term);
 
             I termInfo = indexerEntry == null ? null : indexerLoader.getValue(indexerEntry.getValue(), term);
@@ -210,7 +214,7 @@ public class Searcher<D extends Document<Float>,
         List<DocumentRank> relevantDocuments = new ArrayList<>();
 
         // while the end of all posting lists wasn't reached
-        while (!indexsAtEnd(postingListsCurrentIndexes, terms, postingLists)) {
+        while (!indexesAtEnd(postingListsCurrentIndexes, terms, postingLists)) {
             List<Integer> idxWithDocWithLowerID = new ArrayList<>(terms.size());
 
             // find the first document(s) among all the posting lists with
@@ -265,45 +269,50 @@ public class Searcher<D extends Document<Float>,
      */
     private List<String> translateDocumentIds(List<DocumentRank> relevantDocuments) {
         List<String> relevantDocumentsIdentifiers = new ArrayList<>(relevantDocuments.size());
+        IntStream.range(0, relevantDocuments.size())
+            .forEach(i -> relevantDocumentsIdentifiers.add(""));
 
-        for (DocumentRank docRank : relevantDocuments) {
-            int docId = docRank.docId;
+        IntStream.range(0, relevantDocuments.size())
+            .mapToObj(idx -> new DocumentToTranslate(relevantDocuments.get(idx).docId, idx))
+            .sorted(Comparator.comparingInt(doc -> doc.docId))
+            .forEach(docToTranslate -> {
+                int docId = docToTranslate.docId;
 
-            Map.Entry<Integer, Map<Integer, Object>> docRegEntry = docRegsInMemory.floorEntry(docId);
-            String identifier = docRegEntry == null ? null : docRegLoader.getValue(docRegEntry.getValue(), docId);
+                Map.Entry<Integer, DocRegBulkLoader.DocumentRegistry> docRegEntry = docRegsInMemory.floorEntry(docId);
+                Integer identifier = docRegEntry == null ? null : docRegEntry.getValue().translate(docId);
 
-            if (docRegEntry != null && identifier != null) {
-                // in memory
-                docRegsRanks.put(docRegEntry.getKey(), docRegsRanks.get(docRegEntry.getKey()) + 1);
-            }
-            else {
-                // load from disk
+                if (docRegEntry != null && identifier != null) {
+                    // in memory
+                    docRegsRanks.put(docRegEntry.getKey(), docRegsRanks.get(docRegEntry.getKey()) + 1);
+                }
+                else {
+                    // load from disk
 
-                Map.Entry<Integer, String> docRegFilenameEntry = docRegMetadata.floorEntry(docId);
-                String docRegFilename = docRegFilenameEntry.getValue();
+                    Map.Entry<Integer, String> docRegFilenameEntry = docRegMetadata.floorEntry(docId);
+                    String docRegFilename = docRegFilenameEntry.getValue();
 
-                checkIfCanLoadDocRegFromDisk();
+                    checkIfCanLoadDocRegFromDisk();
 
-                Map<Integer, Object> documentRegistry = null;
-                try {
-                    documentRegistry = docRegLoader.load(docRegFilename);
-                } catch (IOException e) {
-                    System.err.println("ERROR while loading document registry file " + docRegFilename);
-                    e.printStackTrace();
-                    System.exit(2);
+                    DocRegBulkLoader.DocumentRegistry documentRegistry = null;
+                    try {
+                        documentRegistry = docRegLoader.load(docRegFilename, docRegFilenameEntry.getKey());
+                    } catch (IOException e) {
+                        System.err.println("ERROR while loading document registry file " + docRegFilename);
+                        e.printStackTrace();
+                        System.exit(2);
+                    }
+
+                    docRegsInMemory.put(docRegFilenameEntry.getKey(), documentRegistry);
+
+                    // increment the number of usage of the file loaded
+                    docRegsRanks.merge(docRegFilenameEntry.getKey(), 1, Integer::sum);
+
+                    identifier = documentRegistry.translate(docId);
+
                 }
 
-                docRegsInMemory.put(docRegFilenameEntry.getKey(), documentRegistry);
-
-                // increment the number of usage of the file loaded
-                docRegsRanks.merge(docRegFilenameEntry.getKey(), 1, Integer::sum);
-
-                identifier = docRegLoader.getValue(documentRegistry, docId);
-
-            }
-
-            relevantDocumentsIdentifiers.add(identifier);
-        }
+                relevantDocumentsIdentifiers.set(docToTranslate.idx, identifier.toString());
+            });
 
         return relevantDocumentsIdentifiers;
     }
@@ -369,7 +378,7 @@ public class Searcher<D extends Document<Float>,
      * Removes the ones that reached the end
      * @return true if all reached the end, false otherwise
      */
-    private boolean indexsAtEnd(List<Integer> idxs, List<String> terms, List<List<D>> postingLists) {
+    private boolean indexesAtEnd(List<Integer> idxs, List<String> terms, List<List<D>> postingLists) {
         assert idxs.size() == postingLists.size() && postingLists.size() == terms.size();
 
         boolean atEnd = true;
@@ -388,6 +397,9 @@ public class Searcher<D extends Document<Float>,
         return atEnd;
     }
 
+    /**
+     * Auxiliary class to sort document by their weight
+     */
     private static class DocumentRank {
 
         private int docId;
@@ -399,6 +411,23 @@ public class Searcher<D extends Document<Float>,
             this.weight = weight;
         }
 
+    }
+
+    /**
+     * Auxiliary class to sort the document ids and
+     *  also keep track of the position of the document
+     *  in the relevantDocuments list
+     */
+    private static class DocumentToTranslate {
+
+        private int docId;
+
+        private int idx;
+
+        public DocumentToTranslate(int docId, int idx) {
+            this.docId = docId;
+            this.idx = idx;
+        }
     }
 
 }

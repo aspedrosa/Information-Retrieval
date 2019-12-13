@@ -61,7 +61,7 @@ public abstract class Pipeline<
      * Class to persist the document registry structure
      *  to disk
      */
-    protected BasePersister<Integer, String> documentRegistryPersister;
+    protected BasePersister<Integer, Integer> documentRegistryPersister;
 
     private MetadataManager metadataManager;
 
@@ -79,7 +79,7 @@ public abstract class Pipeline<
                     BaseIndexer<T, W, D, I> indexer,
                     CorpusReader corpusReader,
                     BasePersister<T, I> finalIndexPersister,
-                    BasePersister<Integer, String> docRegistryPersister,
+                    BasePersister<Integer, Integer> docRegistryPersister,
                     MetadataManager metadataManager) {
         this.tokenizer = tokenizer;
         this.indexer = indexer;

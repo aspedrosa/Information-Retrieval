@@ -33,6 +33,14 @@ public class OutputStreamPersister<K extends Comparable, V> extends BasePersiste
         this.strategy = strategy;
     }
 
+    public OutputStreamPersister(String outputFolder,
+                                 int limitFileSize,
+                                 boolean considerOnlyValueForMemory,
+                                 OutputStreamStrategy<K, V> strategy) {
+        super(outputFolder, limitFileSize, considerOnlyValueForMemory);
+        this.strategy = strategy;
+    }
+
     @Override
     protected boolean outputIsNull() {
         return currentOutput == null;

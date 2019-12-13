@@ -1,7 +1,7 @@
 package data_containers.indexer;
 
 import data_containers.indexer.structures.Document;
-import data_containers.indexer.weights_calculation.indexing.CalculationsBase;
+import data_containers.indexer.weights_calculation.indexing.IndexingCalculations;
 
 /**
  * Specific type a indexer with ranking weights
@@ -11,7 +11,7 @@ public class WeightsIndexer extends WeightsIndexerBase<Document<Float>> {
     /**
      * Main constructor
      */
-    public WeightsIndexer(CalculationsBase calculations) {
+    public WeightsIndexer(IndexingCalculations calculations) {
         super(calculations);
     }
 
